@@ -13,6 +13,7 @@ function Analyzer() {
     const [input, setInput] = useState("");
     const [output, setOutput] = useState("");
     const [isRunning, setIsRunning] = useState(false);
+    const [executionStatus, setExecutionStatus] = useState(null);
     const [code, setCode] = useState(`#include <bits/stdc++.h>
 using namespace std;
 
@@ -55,6 +56,7 @@ bool containsDuplicate(vector<int>& nums) {
     const handleRun = async () => {
         setIsRunning(true);
         setOutput("");
+        setExecutionStatus(null);
 
         try {
             const response = await fetch("http://localhost:5000/api/run", {
@@ -70,6 +72,8 @@ bool containsDuplicate(vector<int>& nums) {
 
             const result = await response.json();
 
+            setExecutionStatus(result.type);
+
             if (result.success) {
                 setOutput(result.output);
             } else {
@@ -77,6 +81,8 @@ bool containsDuplicate(vector<int>& nums) {
             }
         } catch (error) {
             console.error("Execution error:", error);
+
+            setExecutionStatus("connection");
             setOutput("Could not connect to execution server.");
         } finally {
             setIsRunning(false);
@@ -129,6 +135,7 @@ bool containsDuplicate(vector<int>& nums) {
                             input={input}
                             onInputChange={setInput}
                             output={output}
+                            executionStatus={executionStatus}
                             isRunning={isRunning}
                             analysis={analysis}
                             selectedFinding={selectedFinding}

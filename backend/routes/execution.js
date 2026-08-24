@@ -17,6 +17,16 @@ router.post("/run", (req, res) => {
         });
     }
 
+    if (!/\bmain\s*\(/.test(code)) {
+        return res.json({
+            success: false,
+            type: "compilation",
+            output:
+                "Your program does not contain a main() function.\n\n" +
+                "Run Code requires a complete C++ program with int main().",
+        });
+    }
+
     const tempDir = fs.mkdtempSync(
         path.join(os.tmpdir(), "algolens-")
     );
@@ -88,19 +98,11 @@ router.post("/run", (req, res) => {
         program.stdin.end();
 
         // 3 second execution limit
+        let timedOut = false;
+
         const timeout = setTimeout(() => {
+            timedOut = true;
             program.kill();
-
-            fs.rmSync(tempDir, {
-                recursive: true,
-                force: true,
-            });
-
-            return res.json({
-                success: false,
-                type: "timeout",
-                output: "Execution timed out.",
-            });
         }, 3000);
 
         program.on("close", (exitCode) => {
@@ -110,6 +112,14 @@ router.post("/run", (req, res) => {
                 recursive: true,
                 force: true,
             });
+
+            if (timedOut) {
+                return res.json({
+                    success: false,
+                    type: "timeout",
+                    output: "Execution timed out.",
+                });
+            }
 
             if (exitCode !== 0) {
                 return res.json({

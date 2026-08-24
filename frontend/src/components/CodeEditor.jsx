@@ -10,6 +10,7 @@ function CodeEditor({
     input,
     onInputChange,
     output,
+    executionStatus,
     isRunning,
     analysis,
     selectedFinding,
@@ -199,6 +200,28 @@ function CodeEditor({
                 >
                     Output
                 </Typography>
+
+                {executionStatus && (
+                    <Box
+                        sx={{
+                            mb: 1,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color:
+                                executionStatus === "success"
+                                    ? "success.main"
+                                    : executionStatus === "timeout"
+                                        ? "warning.main"
+                                        : "error.main",
+                        }}
+                    >
+                        {executionStatus === "success" && "✓ Execution Successful"}
+                        {executionStatus === "compilation" && "✕ Compilation Error"}
+                        {executionStatus === "runtime" && "✕ Runtime Error"}
+                        {executionStatus === "timeout" && "⚠ Time Limit Exceeded"}
+                        {executionStatus === "connection" && "✕ Connection Error"}
+                    </Box>
+                )}
 
                 <Box
                     sx={{
