@@ -1,0 +1,27 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: "Inter", "Roboto", Arial, sans-serif;
+  background-color: #0b1120;
+  color: #e5e7eb;
+}
+
+.algoLens-warning-line {
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.algoLens-warning-glyph {
+    background: rgba(245, 158, 11, 0.9);
+    width: 5px !important;
+    margin-left: 3px;
+}
