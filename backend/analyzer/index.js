@@ -1,6 +1,7 @@
 const { detectNestedLoop } = require("./nestedLoopRule");
 const { detectRepeatedLinearSearch } = require("./linearSearchRule");
 const { detectSortingInsideLoop } = require("./sortingInsideLoopRule");
+const { detectLoopInvariant } = require("./loopInvariantRule");
 
 const analyzerRules = [
     {
@@ -125,6 +126,40 @@ sort(nums.begin(), nums.end());
 
 for (int i = 0; i < n; i++) {
     // Perform the required loop operations
+}`,
+    }),
+},
+
+{
+    name: "Loop-Invariant Computation",
+
+    detect: detectLoopInvariant,
+
+    result: (details) => ({
+        detected: true,
+
+        pattern: "Loop-Invariant Computation",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity: "O(n)",
+
+        spaceComplexity: "O(1)",
+
+        recommendation:
+            "Move the repeated computation outside the loop",
+
+        explanation:
+            "A computation that does not depend on the loop variable is being repeated inside the loop. Moving it outside avoids unnecessary work on every iteration.",
+
+        optimizedComplexity:
+            "O(n) with reduced constant work",
+
+        optimizedCode: `int size = nums.size();
+
+for (int i = 0; i < n; i++) {
+    // Use size instead of calling nums.size()
 }`,
     }),
 },
