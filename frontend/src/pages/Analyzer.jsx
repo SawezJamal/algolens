@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Box, Container, Grid, Paper, Typography } from "@mui/material";
 
 import ProblemPanel from "../components/ProblemPanel";
@@ -6,6 +7,7 @@ import CodeEditor from "../components/CodeEditor";
 import AnalysisPanel from "../components/AnalysisPanel";
 
 function Analyzer() {
+    const { id } = useParams();
     const [selectedFinding, setSelectedFinding] = useState(null);
     const handleFindingClick = (finding) => {
         setSelectedFinding(finding);
@@ -88,6 +90,36 @@ bool containsDuplicate(vector<int>& nums) {
             setIsRunning(false);
         }
     };
+
+    useEffect(() => {
+    if (!id) {
+        return;
+    }
+
+    const loadAnalysis = async () => {
+        try {
+            const response = await fetch(
+                `http://localhost:5000/api/analyses/${id}`
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load analysis");
+            }
+
+            const savedAnalysis = await response.json();
+
+            setCode(savedAnalysis.code);
+            setAnalysis({
+                detected: savedAnalysis.detected,
+                findings: savedAnalysis.findings,
+            });
+        } catch (error) {
+            console.error("Failed to load saved analysis:", error);
+        }
+    };
+
+    loadAnalysis();
+}, [id]);
 
     return (
         <Container maxWidth="xl" sx={{ py: 5 }}>
