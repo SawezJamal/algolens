@@ -13,9 +13,38 @@ import {
     Typography,
 } from "@mui/material";
 
+function getWorstComplexity(findings) {
+    if (!findings || findings.length === 0) {
+        return "O(n)";
+    }
+
+    const complexityRank = {
+        "O(1)": 1,
+        "O(log n)": 2,
+        "O(n)": 3,
+        "O(n log n)": 4,
+        "O(n²)": 5,
+        "O(n² log n)": 6,
+    };
+
+    return findings.reduce((worst, finding) => {
+        const currentRank =
+            complexityRank[finding.timeComplexity] || 0;
+
+        const worstRank =
+            complexityRank[worst] || 0;
+
+        return currentRank > worstRank
+            ? finding.timeComplexity
+            : worst;
+    }, "O(1)");
+}
 
 function AnalysisPanel({ analysis, onFindingClick }) {
     const [selectedOptimization, setSelectedOptimization] = useState(null);
+    const issueCount = analysis?.findings?.length || 0;
+const worstComplexity = getWorstComplexity(analysis?.findings);
+    
     if (!analysis) {
         return null;
     }
@@ -137,6 +166,79 @@ function AnalysisPanel({ analysis, onFindingClick }) {
                 size="small"
                 sx={{ mb: 3 }}
             />
+
+            <Box
+    sx={{
+        mb: 3,
+        p: 2,
+        borderRadius: 2,
+        backgroundColor: "rgba(59, 130, 246, 0.05)",
+        border: "1px solid rgba(59, 130, 246, 0.15)",
+    }}
+>
+    <Typography
+        variant="subtitle1"
+        sx={{
+            fontWeight: 700,
+            mb: 2,
+        }}
+    >
+        Analysis Summary
+    </Typography>
+
+    <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+    >
+        <Box sx={{ flex: 1 }}>
+            <Typography
+                variant="caption"
+                color="text.secondary"
+            >
+                Issues Found
+            </Typography>
+
+            <Typography
+                variant="h5"
+                sx={{ fontWeight: 700 }}
+            >
+                {issueCount}
+            </Typography>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+            <Typography
+                variant="caption"
+                color="text.secondary"
+            >
+                Worst Time Complexity
+            </Typography>
+
+            <Typography
+                variant="h5"
+                sx={{ fontWeight: 700 }}
+            >
+                {worstComplexity}
+            </Typography>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+            <Typography
+                variant="caption"
+                color="text.secondary"
+            >
+                Optimization Opportunities
+            </Typography>
+
+            <Typography
+                variant="h5"
+                sx={{ fontWeight: 700 }}
+            >
+                {issueCount}
+            </Typography>
+        </Box>
+    </Stack>
+</Box>
 
             {analysis.findings.map((finding, index) => (
                 <Box key={index}>
