@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import { Box, Container, Grid, Paper, Typography } from "@mui/material";
 
 import ProblemPanel from "../components/ProblemPanel";
@@ -7,7 +7,11 @@ import CodeEditor from "../components/CodeEditor";
 import AnalysisPanel from "../components/AnalysisPanel";
 
 function Analyzer() {
+    const [searchParams] = useSearchParams();
+    const problemId = searchParams.get("problem");
+    
     const { id } = useParams();
+    const [selectedProblem, setSelectedProblem] = useState(null);
     const [selectedFinding, setSelectedFinding] = useState(null);
     const handleFindingClick = (finding) => {
         setSelectedFinding(finding);
@@ -92,34 +96,66 @@ bool containsDuplicate(vector<int>& nums) {
     };
 
     useEffect(() => {
-    if (!id) {
+        if (!id) {
+            return;
+        }
+
+        const loadAnalysis = async () => {
+            try {
+                const response = await fetch(
+                    `http://localhost:5000/api/analyses/${id}`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Failed to load analysis");
+                }
+
+                const savedAnalysis = await response.json();
+
+                setCode(savedAnalysis.code);
+                setAnalysis({
+                    detected: savedAnalysis.detected,
+                    findings: savedAnalysis.findings,
+                });
+            } catch (error) {
+                console.error("Failed to load saved analysis:", error);
+            }
+        };
+
+        loadAnalysis();
+    }, [id]);
+
+    useEffect(() => {
+    if (!problemId || id) {
         return;
     }
 
-    const loadAnalysis = async () => {
+    const loadProblem = async () => {
         try {
             const response = await fetch(
-                `http://localhost:5000/api/analyses/${id}`
+                `http://localhost:5000/api/problems/${problemId}`
             );
 
             if (!response.ok) {
-                throw new Error("Failed to load analysis");
+                throw new Error("Failed to load problem");
             }
 
-            const savedAnalysis = await response.json();
+            const problem = await response.json();
 
-            setCode(savedAnalysis.code);
-            setAnalysis({
-                detected: savedAnalysis.detected,
-                findings: savedAnalysis.findings,
-            });
+            setSelectedProblem(problem);
+            setCode(problem.starterCode);
+            setAnalysis(null);
+            setSelectedFinding(null);
         } catch (error) {
-            console.error("Failed to load saved analysis:", error);
+            console.error(
+                "Failed to load problem:",
+                error
+            );
         }
     };
 
-    loadAnalysis();
-}, [id]);
+    loadProblem();
+}, [problemId, id]);
 
     return (
         <Container maxWidth="xl" sx={{ py: 5 }}>
@@ -148,7 +184,7 @@ bool containsDuplicate(vector<int>& nums) {
                             backgroundColor: "background.paper",
                         }}
                     >
-                        <ProblemPanel />
+                        <ProblemPanel problem={selectedProblem} />
                     </Paper>
                 </Grid>
 
