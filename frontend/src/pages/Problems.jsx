@@ -55,7 +55,9 @@ function Problems() {
     const categories = [
         "All",
         ...new Set(
-            problems.map((problem) => problem.category)
+            problems.flatMap(
+                (problem) => problem.categories || []
+            )
         ),
     ];
 
@@ -72,7 +74,7 @@ function Problems() {
 
             const matchesCategory =
                 category === "All" ||
-                problem.category === category;
+                problem.categories?.includes(category);
 
             return (
                 matchesSearch &&
@@ -235,21 +237,31 @@ function Problems() {
                                             size="small"
                                             color={
                                                 problem.difficulty ===
-                                                "Easy"
+                                                    "Easy"
                                                     ? "success"
                                                     : problem.difficulty ===
                                                         "Medium"
-                                                      ? "warning"
-                                                      : "error"
+                                                        ? "warning"
+                                                        : "error"
                                             }
                                         />
 
-                                        <Typography
-                                            variant="caption"
-                                            color="text.secondary"
+                                        <Stack
+                                            direction="row"
+                                            spacing={0.5}
+                                            flexWrap="wrap"
+                                            useFlexGap
+                                            justifyContent="flex-end"
                                         >
-                                            {problem.category}
-                                        </Typography>
+                                            {(problem.categories || []).map((item) => (
+                                                <Chip
+                                                    key={item}
+                                                    label={item}
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            ))}
+                                        </Stack>
                                     </Stack>
 
                                     <Typography

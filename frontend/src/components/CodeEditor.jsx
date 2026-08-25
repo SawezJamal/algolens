@@ -7,6 +7,7 @@ function CodeEditor({
     onCodeChange,
     onAnalyze,
     onRun,
+    testResults,
     input,
     onInputChange,
     output,
@@ -238,6 +239,77 @@ function CodeEditor({
                 >
                     {output || "Output will appear here..."}
                 </Box>
+                {testResults && (
+                    <Box
+                        sx={{
+                            mt: 3,
+                            p: 2,
+                            borderRadius: 2,
+                            border: "1px solid",
+                            borderColor: testResults.allPassed
+                                ? "success.main"
+                                : "error.main",
+                            backgroundColor: "background.paper",
+                        }}
+                    >
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                fontWeight: 700,
+                                mb: 1,
+                            }}
+                        >
+                            {testResults.allPassed
+                                ? "✓ All Test Cases Passed"
+                                : "✕ Some Test Cases Failed"}
+                        </Typography>
+
+                        <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mb: 2 }}
+                        >
+                            Passed {testResults.passed} /{" "}
+                            {testResults.total} test cases
+                        </Typography>
+
+                        <Stack spacing={1}>
+                            {testResults.results.map((result) => (
+                                <Box
+                                    key={result.testCase}
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        px: 1.5,
+                                        py: 1,
+                                        borderRadius: 1,
+                                        backgroundColor:
+                                            "rgba(148, 163, 184, 0.08)",
+                                    }}
+                                >
+                                    <Typography variant="body2">
+                                        Test Case {result.testCase}
+                                    </Typography>
+
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontWeight: 600,
+                                            color: result.passed
+                                                ? "success.main"
+                                                : "error.main",
+                                        }}
+                                    >
+                                        {result.passed
+                                            ? "✓ Passed"
+                                            : "✕ Failed"}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Stack>
+                    </Box>
+                )}
             </Box>
         </Box>
     );

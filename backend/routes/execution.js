@@ -4,10 +4,91 @@ const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
 
+const Problem = require("../models/Problem");
+
 const router = express.Router();
 
-router.post("/run", (req, res) => {
-    const { code, input = "" } = req.body;
+function buildCoinChangeHarness(code, testCases) {
+    const testData = testCases.map((testCase) => {
+        const input = JSON.parse(testCase.input);
+
+        return {
+            coins: input.coins || [],
+            amount: input.amount,
+        };
+    });
+
+    const testCasesCode = testData
+        .map((testCase) => {
+            const coinsInitializer =
+                `{${testCase.coins.join(", ")}}`;
+
+            return `
+    {
+        vector<int> coins = ${coinsInitializer};
+        int amount = ${testCase.amount};
+
+        cout << canMakeChange(coins, amount) << endl;
+    }
+`;
+        })
+        .join("\n");
+
+    return `
+#include <bits/stdc++.h>
+using namespace std;
+
+${code}
+
+int main() {
+${testCasesCode}
+
+    return 0;
+}
+`;
+}
+
+function evaluateTestCases(problem, output) {
+    const actualOutputs = output
+        .trim()
+        .split(/\s+/);
+
+    const expectedOutputs = problem.testCases.map(
+        (testCase) => testCase.output.trim()
+    );
+
+    const results = expectedOutputs.map(
+        (expected, index) => {
+            const actual =
+                actualOutputs[index] ?? "";
+
+            return {
+                testCase: index + 1,
+                expected,
+                actual,
+                passed: actual === expected,
+            };
+        }
+    );
+
+    const passed = results.filter(
+        (result) => result.passed
+    ).length;
+
+    return {
+        passed,
+        total: results.length,
+        allPassed: passed === results.length,
+        results,
+    };
+}
+
+router.post("/run", async (req, res) => {
+    const {
+        code,
+        input = "",
+        problemId,
+    } = req.body;
 
     if (!code) {
         return res.status(400).json({
@@ -17,25 +98,116 @@ router.post("/run", (req, res) => {
         });
     }
 
-    if (!/\bmain\s*\(/.test(code)) {
-        return res.json({
+    if (!problemId) {
+        return res.status(400).json({
             success: false,
-            type: "compilation",
-            output:
-                "Your program does not contain a main() function.\n\n" +
-                "Run Code requires a complete C++ program with int main().",
+            type: "error",
+            output: "Problem ID is required.",
         });
+    }
+
+    let problem;
+
+    try {
+        problem = await Problem.findOne({
+            slug: problemId,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to load problem:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            type: "error",
+            output: "Failed to load problem.",
+        });
+    }
+
+    if (!problem) {
+        return res.status(404).json({
+            success: false,
+            type: "error",
+            output: "Problem not found.",
+        });
+    }
+
+    let executableCode = code;
+
+    /*
+     * Coin Change Existence currently uses
+     * function-based execution.
+     */
+    if (problem.slug === "coin-change-existence") {
+        try {
+            const testCases = problem.testCases;
+
+            if (
+                !testCases ||
+                testCases.length === 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    type: "error",
+                    output:
+                        "No test cases available for this problem.",
+                });
+            }
+
+            executableCode =
+                buildCoinChangeHarness(
+                    code,
+                    testCases
+                );
+        } catch (error) {
+            console.error(
+                "Failed to build test harness:",
+                error
+            );
+
+            return res.status(400).json({
+                success: false,
+                type: "error",
+                output:
+                    "Could not build test case.",
+            });
+        }
+    } else {
+        /*
+         * Existing behavior for normal complete
+         * C++ programs.
+         */
+        if (!/\bmain\s*\(/.test(code)) {
+            return res.json({
+                success: false,
+                type: "compilation",
+                output:
+                    "Your program does not contain a main() function.\n\n" +
+                    "Run Code requires a complete C++ program with int main().",
+            });
+        }
     }
 
     const tempDir = fs.mkdtempSync(
         path.join(os.tmpdir(), "algolens-")
     );
 
-    const sourceFile = path.join(tempDir, "main.cpp");
-    const executable = path.join(tempDir, "main.exe");
+    const sourceFile = path.join(
+        tempDir,
+        "main.cpp"
+    );
+
+    const executable = path.join(
+        tempDir,
+        "main.exe"
+    );
 
     try {
-        fs.writeFileSync(sourceFile, code);
+        fs.writeFileSync(
+            sourceFile,
+            executableCode
+        );
     } catch (error) {
         fs.rmSync(tempDir, {
             recursive: true,
@@ -45,7 +217,8 @@ router.post("/run", (req, res) => {
         return res.status(500).json({
             success: false,
             type: "error",
-            output: "Could not create temporary source file.",
+            output:
+                "Could not create temporary source file.",
         });
     }
 
@@ -58,84 +231,146 @@ router.post("/run", (req, res) => {
 
     let compileError = "";
 
-    compiler.stderr.on("data", (data) => {
-        compileError += data.toString();
-    });
-
-    compiler.on("close", (exitCode) => {
-        if (exitCode !== 0) {
-            fs.rmSync(tempDir, {
-                recursive: true,
-                force: true,
-            });
-
-            return res.json({
-                success: false,
-                type: "compilation",
-                output: compileError || "Compilation failed.",
-            });
+    compiler.stderr.on(
+        "data",
+        (data) => {
+            compileError += data.toString();
         }
+    );
 
-        // Run compiled program
-        const program = spawn(executable);
-
-        let output = "";
-        let runtimeError = "";
-
-        program.stdout.on("data", (data) => {
-            output += data.toString();
-        });
-
-        program.stderr.on("data", (data) => {
-            runtimeError += data.toString();
-        });
-
-        // Send input to program
-        if (input) {
-            program.stdin.write(input);
-        }
-
-        program.stdin.end();
-
-        // 3 second execution limit
-        let timedOut = false;
-
-        const timeout = setTimeout(() => {
-            timedOut = true;
-            program.kill();
-        }, 3000);
-
-        program.on("close", (exitCode) => {
-            clearTimeout(timeout);
-
-            fs.rmSync(tempDir, {
-                recursive: true,
-                force: true,
-            });
-
-            if (timedOut) {
-                return res.json({
-                    success: false,
-                    type: "timeout",
-                    output: "Execution timed out.",
-                });
-            }
-
+    compiler.on(
+        "close",
+        (exitCode) => {
             if (exitCode !== 0) {
+                fs.rmSync(tempDir, {
+                    recursive: true,
+                    force: true,
+                });
+
                 return res.json({
                     success: false,
-                    type: "runtime",
-                    output: runtimeError || "Runtime error.",
+                    type: "compilation",
+                    output:
+                        compileError ||
+                        "Compilation failed.",
                 });
             }
 
-            return res.json({
-                success: true,
-                type: "success",
-                output,
-            });
-        });
-    });
+            // Run compiled program
+            const program = spawn(
+                executable
+            );
+
+            let output = "";
+            let runtimeError = "";
+
+            program.stdout.on(
+                "data",
+                (data) => {
+                    output += data.toString();
+                }
+            );
+
+            program.stderr.on(
+                "data",
+                (data) => {
+                    runtimeError +=
+                        data.toString();
+                }
+            );
+
+            /*
+             * Keep support for normal custom
+             * input programs.
+             *
+             * Coin Change Existence doesn't use
+             * stdin because its MongoDB test cases
+             * are converted into the generated main().
+             */
+            if (
+                input &&
+                problem.slug !==
+                    "coin-change-existence"
+            ) {
+                program.stdin.write(input);
+            }
+
+            program.stdin.end();
+
+            // 3 second execution limit
+            let timedOut = false;
+
+            const timeout = setTimeout(
+                () => {
+                    timedOut = true;
+                    program.kill();
+                },
+                3000
+            );
+
+            program.on(
+                "close",
+                (exitCode) => {
+                    clearTimeout(timeout);
+
+                    fs.rmSync(tempDir, {
+                        recursive: true,
+                        force: true,
+                    });
+
+                    if (timedOut) {
+                        return res.json({
+                            success: false,
+                            type: "timeout",
+                            output:
+                                "Execution timed out.",
+                        });
+                    }
+
+                    if (exitCode !== 0) {
+                        return res.json({
+                            success: false,
+                            type: "runtime",
+                            output:
+                                runtimeError ||
+                                "Runtime error.",
+                        });
+                    }
+
+                    /*
+                     * Evaluate MongoDB test cases.
+                     */
+                    if (
+                        problem.slug ===
+                        "coin-change-existence"
+                    ) {
+                        const testResults =
+                            evaluateTestCases(
+                                problem,
+                                output
+                            );
+
+                        return res.json({
+                            success: true,
+                            type: "success",
+                            output,
+                            testResults,
+                        });
+                    }
+
+                    /*
+                     * Existing response for
+                     * normal programs.
+                     */
+                    return res.json({
+                        success: true,
+                        type: "success",
+                        output,
+                    });
+                }
+            );
+        }
+    );
 });
 
 module.exports = router;

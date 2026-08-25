@@ -18,6 +18,7 @@ function Analyzer() {
     };
     const [input, setInput] = useState("");
     const [output, setOutput] = useState("");
+const [testResults, setTestResults] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [executionStatus, setExecutionStatus] = useState(null);
     const [code, setCode] = useState(`#include <bits/stdc++.h>
@@ -60,12 +61,15 @@ bool containsDuplicate(vector<int>& nums) {
     };
 
     const handleRun = async () => {
-        setIsRunning(true);
-        setOutput("");
-        setExecutionStatus(null);
+    setIsRunning(true);
+    setOutput("");
+    setExecutionStatus(null);
+    setTestResults(null);
 
-        try {
-            const response = await fetch("http://localhost:5000/api/run", {
+    try {
+        const response = await fetch(
+            "http://localhost:5000/api/run",
+            {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -73,27 +77,38 @@ bool containsDuplicate(vector<int>& nums) {
                 body: JSON.stringify({
                     code,
                     input,
+                    problemId,
                 }),
-            });
-
-            const result = await response.json();
-
-            setExecutionStatus(result.type);
-
-            if (result.success) {
-                setOutput(result.output);
-            } else {
-                setOutput(result.output || "Execution failed.");
             }
-        } catch (error) {
-            console.error("Execution error:", error);
+        );
 
-            setExecutionStatus("connection");
-            setOutput("Could not connect to execution server.");
-        } finally {
-            setIsRunning(false);
+        const result = await response.json();
+
+        setExecutionStatus(result.type);
+        setTestResults(result.testResults || null);
+
+        if (result.success) {
+            setOutput(result.output);
+        } else {
+            setOutput(
+                result.output ||
+                "Execution failed."
+            );
         }
-    };
+    } catch (error) {
+        console.error(
+            "Execution error:",
+            error
+        );
+
+        setExecutionStatus("connection");
+        setOutput(
+            "Could not connect to execution server."
+        );
+    } finally {
+        setIsRunning(false);
+    }
+};
 
     useEffect(() => {
         if (!id) {
@@ -196,18 +211,19 @@ bool containsDuplicate(vector<int>& nums) {
                         }}
                     >
                         <CodeEditor
-                            code={code}
-                            onCodeChange={setCode}
-                            onAnalyze={handleAnalyze}
-                            onRun={handleRun}
-                            input={input}
-                            onInputChange={setInput}
-                            output={output}
-                            executionStatus={executionStatus}
-                            isRunning={isRunning}
-                            analysis={analysis}
-                            selectedFinding={selectedFinding}
-                        />
+    code={code}
+    onCodeChange={setCode}
+    onAnalyze={handleAnalyze}
+    onRun={handleRun}
+    testResults={testResults}
+    input={input}
+    onInputChange={setInput}
+    output={output}
+    executionStatus={executionStatus}
+    isRunning={isRunning}
+    analysis={analysis}
+    selectedFinding={selectedFinding}
+/>
                     </Paper>
 
                     {analysis && <AnalysisPanel

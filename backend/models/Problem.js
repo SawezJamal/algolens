@@ -20,14 +20,12 @@ const problemSchema = new mongoose.Schema(
         title: {
             type: String,
             required: true,
-            trim: true,
         },
 
         slug: {
             type: String,
             required: true,
             unique: true,
-            trim: true,
         },
 
         difficulty: {
@@ -36,9 +34,10 @@ const problemSchema = new mongoose.Schema(
             required: true,
         },
 
-        category: {
-            type: String,
+        categories: {
+            type: [String],
             required: true,
+            default: [],
         },
 
         description: {
@@ -51,6 +50,11 @@ const problemSchema = new mongoose.Schema(
             default: [],
         },
 
+        testCases: {
+            type: [exampleSchema],
+            default: [],
+        },
+
         constraints: {
             type: [String],
             default: [],
@@ -58,15 +62,17 @@ const problemSchema = new mongoose.Schema(
 
         starterCode: {
             type: String,
-            required: true,
+            default: "",
         },
 
         expectedTimeComplexity: {
             type: String,
+            default: "",
         },
 
         expectedSpaceComplexity: {
             type: String,
+            default: "",
         },
 
         tags: {
@@ -76,10 +82,12 @@ const problemSchema = new mongoose.Schema(
 
         source: {
             type: String,
+            default: "",
         },
 
         sourceUrl: {
             type: String,
+            default: "",
         },
     },
     {

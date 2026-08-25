@@ -1,28 +1,40 @@
-import { Box, Chip, Divider, Typography } from "@mui/material";
+import { Box, Chip, Divider, Stack, Typography } from "@mui/material";
 
 function ProblemPanel({ problem }) {
     if (!problem) {
-        return null;
+        return (
+            <Typography color="text.secondary">
+                Problem not found.
+            </Typography>
+        );
     }
 
     return (
         <Box>
-            <Box sx={{ mb: 2 }}>
-                <Chip
-                    label={problem.category}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                    sx={{ mb: 1.5 }}
-                />
+            <Stack
+                direction="row"
+                spacing={0.5}
+                flexWrap="wrap"
+                useFlexGap
+                sx={{ mb: 1.5 }}
+            >
+                {(problem.categories || []).map((category) => (
+                    <Chip
+                        key={category}
+                        label={category}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                    />
+                ))}
+            </Stack>
 
-                <Typography
-                    variant="h5"
-                    sx={{ fontWeight: 700 }}
-                >
-                    {problem.title}
-                </Typography>
-            </Box>
+            <Typography
+                variant="h5"
+                sx={{ fontWeight: 700, mb: 2 }}
+            >
+                {problem.title}
+            </Typography>
 
             <Typography
                 variant="body1"
@@ -39,22 +51,19 @@ function ProblemPanel({ problem }) {
 
             <Typography
                 variant="subtitle1"
-                sx={{
-                    fontWeight: 600,
-                    mb: 1,
-                }}
+                sx={{ fontWeight: 600, mb: 1 }}
             >
                 Example
             </Typography>
 
-            {problem.examples?.map((example, index) => (
+            {(problem.examples || []).map((example, index) => (
                 <Box
                     key={index}
                     sx={{
                         backgroundColor: "#0b1120",
                         borderRadius: 2,
                         p: 2,
-                        mb: 1,
+                        mb: 1.5,
                         fontFamily: "monospace",
                         color: "text.secondary",
                     }}
