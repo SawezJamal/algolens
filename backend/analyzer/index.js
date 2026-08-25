@@ -2,6 +2,7 @@ const { detectNestedLoop } = require("./nestedLoopRule");
 const { detectRepeatedLinearSearch } = require("./linearSearchRule");
 const { detectSortingInsideLoop } = require("./sortingInsideLoopRule");
 const { detectLoopInvariant } = require("./loopInvariantRule");
+const { detectRedundantTraversal } = require("./redundantTraversalRule");
 
 const analyzerRules = [
     {
@@ -160,6 +161,40 @@ for (int i = 0; i < n; i++) {
 
 for (int i = 0; i < n; i++) {
     // Use size instead of calling nums.size()
+}`,
+    }),
+},
+{
+    name: "Redundant Array Traversal",
+
+    detect: detectRedundantTraversal,
+
+    result: (details) => ({
+        detected: true,
+
+        pattern: "Redundant Array Traversal",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity: "O(2n)",
+
+        spaceComplexity: "O(1)",
+
+        recommendation:
+            "Combine multiple traversals into a single loop when possible.",
+
+        explanation:
+            `The array "${details.array}" is traversed multiple times. Independent computations like sum, minimum, maximum, or counting can often be merged into one pass.`,
+
+        optimizedComplexity: "O(n)",
+
+        optimizedCode: `int sum = 0;
+int maxVal = nums[0];
+
+for (int i = 0; i < nums.size(); i++) {
+    sum += nums[i];
+    maxVal = max(maxVal, nums[i]);
 }`,
     }),
 },
