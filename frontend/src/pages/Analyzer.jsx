@@ -9,7 +9,7 @@ import AnalysisPanel from "../components/AnalysisPanel";
 function Analyzer() {
     const [searchParams] = useSearchParams();
     const problemId = searchParams.get("problem");
-    
+
     const { id } = useParams();
     const [selectedProblem, setSelectedProblem] = useState(null);
     const [selectedFinding, setSelectedFinding] = useState(null);
@@ -18,7 +18,7 @@ function Analyzer() {
     };
     const [input, setInput] = useState("");
     const [output, setOutput] = useState("");
-const [testResults, setTestResults] = useState(null);
+    const [testResults, setTestResults] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
     const [executionStatus, setExecutionStatus] = useState(null);
     const [code, setCode] = useState(`#include <bits/stdc++.h>
@@ -61,54 +61,54 @@ bool containsDuplicate(vector<int>& nums) {
     };
 
     const handleRun = async () => {
-    setIsRunning(true);
-    setOutput("");
-    setExecutionStatus(null);
-    setTestResults(null);
+        setIsRunning(true);
+        setOutput("");
+        setExecutionStatus(null);
+        setTestResults(null);
 
-    try {
-        const response = await fetch(
-            "http://localhost:5000/api/run",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    code,
-                    input,
-                    problemId,
-                }),
-            }
-        );
-
-        const result = await response.json();
-
-        setExecutionStatus(result.type);
-        setTestResults(result.testResults || null);
-
-        if (result.success) {
-            setOutput(result.output);
-        } else {
-            setOutput(
-                result.output ||
-                "Execution failed."
+        try {
+            const response = await fetch(
+                "http://localhost:5000/api/run",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        code,
+                        input,
+                        problemId,
+                    }),
+                }
             );
-        }
-    } catch (error) {
-        console.error(
-            "Execution error:",
-            error
-        );
 
-        setExecutionStatus("connection");
-        setOutput(
-            "Could not connect to execution server."
-        );
-    } finally {
-        setIsRunning(false);
-    }
-};
+            const result = await response.json();
+
+            setExecutionStatus(result.type);
+            setTestResults(result.testResults || null);
+
+            if (result.success) {
+                setOutput(result.output);
+            } else {
+                setOutput(
+                    result.output ||
+                    "Execution failed."
+                );
+            }
+        } catch (error) {
+            console.error(
+                "Execution error:",
+                error
+            );
+
+            setExecutionStatus("connection");
+            setOutput(
+                "Could not connect to execution server."
+            );
+        } finally {
+            setIsRunning(false);
+        }
+    };
 
     useEffect(() => {
         if (!id) {
@@ -141,36 +141,36 @@ bool containsDuplicate(vector<int>& nums) {
     }, [id]);
 
     useEffect(() => {
-    if (!problemId || id) {
-        return;
-    }
-
-    const loadProblem = async () => {
-        try {
-            const response = await fetch(
-                `http://localhost:5000/api/problems/${problemId}`
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to load problem");
-            }
-
-            const problem = await response.json();
-
-            setSelectedProblem(problem);
-            setCode(problem.starterCode);
-            setAnalysis(null);
-            setSelectedFinding(null);
-        } catch (error) {
-            console.error(
-                "Failed to load problem:",
-                error
-            );
+        if (!problemId || id) {
+            return;
         }
-    };
 
-    loadProblem();
-}, [problemId, id]);
+        const loadProblem = async () => {
+            try {
+                const response = await fetch(
+                    `http://localhost:5000/api/problems/${problemId}`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Failed to load problem");
+                }
+
+                const problem = await response.json();
+
+                setSelectedProblem(problem);
+                setCode(problem.starterCode);
+                setAnalysis(null);
+                setSelectedFinding(null);
+            } catch (error) {
+                console.error(
+                    "Failed to load problem:",
+                    error
+                );
+            }
+        };
+
+        loadProblem();
+    }, [problemId, id]);
 
     return (
         <Container maxWidth="xl" sx={{ py: 5 }}>
@@ -211,19 +211,19 @@ bool containsDuplicate(vector<int>& nums) {
                         }}
                     >
                         <CodeEditor
-    code={code}
-    onCodeChange={setCode}
-    onAnalyze={handleAnalyze}
-    onRun={handleRun}
-    testResults={testResults}
-    input={input}
-    onInputChange={setInput}
-    output={output}
-    executionStatus={executionStatus}
-    isRunning={isRunning}
-    analysis={analysis}
-    selectedFinding={selectedFinding}
-/>
+                            code={code}
+                            onCodeChange={setCode}
+                            onAnalyze={handleAnalyze}
+                            onRun={handleRun}
+                            input={input}
+                            onInputChange={setInput}
+                            output={output}
+                            executionStatus={executionStatus}
+                            testResults={testResults}
+                            isRunning={isRunning}
+                            analysis={analysis}
+                            selectedFinding={selectedFinding}
+                        />
                     </Paper>
 
                     {analysis && <AnalysisPanel

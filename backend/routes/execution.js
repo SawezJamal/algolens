@@ -5,48 +5,8 @@ const os = require("os");
 const { spawn } = require("child_process");
 
 const Problem = require("../models/Problem");
-
+const { getRunner } = require("../runners");
 const router = express.Router();
-
-function buildCoinChangeHarness(code, testCases) {
-    const testData = testCases.map((testCase) => {
-        const input = JSON.parse(testCase.input);
-
-        return {
-            coins: input.coins || [],
-            amount: input.amount,
-        };
-    });
-
-    const testCasesCode = testData
-        .map((testCase) => {
-            const coinsInitializer =
-                `{${testCase.coins.join(", ")}}`;
-
-            return `
-    {
-        vector<int> coins = ${coinsInitializer};
-        int amount = ${testCase.amount};
-
-        cout << canMakeChange(coins, amount) << endl;
-    }
-`;
-        })
-        .join("\n");
-
-    return `
-#include <bits/stdc++.h>
-using namespace std;
-
-${code}
-
-int main() {
-${testCasesCode}
-
-    return 0;
-}
-`;
-}
 
 function evaluateTestCases(problem, output) {
     const actualOutputs = output
@@ -139,55 +99,52 @@ router.post("/run", async (req, res) => {
      * Coin Change Existence currently uses
      * function-based execution.
      */
-    if (problem.slug === "coin-change-existence") {
-        try {
-            const testCases = problem.testCases;
+const runner = getRunner(problem);
 
-            if (
-                !testCases ||
-                testCases.length === 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    type: "error",
-                    output:
-                        "No test cases available for this problem.",
-                });
-            }
+if (runner) {
+    try {
+        const testCases = problem.testCases;
 
-            executableCode =
-                buildCoinChangeHarness(
-                    code,
-                    testCases
-                );
-        } catch (error) {
-            console.error(
-                "Failed to build test harness:",
-                error
-            );
-
+        if (
+            !testCases ||
+            testCases.length === 0
+        ) {
             return res.status(400).json({
                 success: false,
                 type: "error",
                 output:
-                    "Could not build test case.",
+                    "No test cases available for this problem.",
             });
         }
-    } else {
-        /*
-         * Existing behavior for normal complete
-         * C++ programs.
-         */
-        if (!/\bmain\s*\(/.test(code)) {
-            return res.json({
-                success: false,
-                type: "compilation",
-                output:
-                    "Your program does not contain a main() function.\n\n" +
-                    "Run Code requires a complete C++ program with int main().",
-            });
-        }
+
+        executableCode = runner(
+            code,
+            testCases
+        );
+    } catch (error) {
+        console.error(
+            "Failed to build test harness:",
+            error
+        );
+
+        return res.status(400).json({
+            success: false,
+            type: "error",
+            output:
+                "Could not build test case.",
+        });
     }
+} else {
+    if (!/\bmain\s*\(/.test(code)) {
+        return res.json({
+            success: false,
+            type: "compilation",
+            output:
+                "Your program does not contain a main() function.\n\n" +
+                "Run Code requires a complete C++ program with int main().",
+        });
+    }
+}
 
     const tempDir = fs.mkdtempSync(
         path.join(os.tmpdir(), "algolens-")
