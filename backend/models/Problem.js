@@ -89,6 +89,39 @@ const problemSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+execution: {
+    enabled: {
+        type: Boolean,
+        default: false,
+    },
+
+    runnerType: {
+        type: String,
+        default: "",
+    },
+
+    functionName: {
+        type: String,
+        default: "",
+    },
+
+    parameters: {
+        type: [
+            {
+                name: {
+                    type: String,
+                    required: true,
+                },
+
+                type: {
+                    type: String,
+                    required: true,
+                },
+            },
+        ],
+        default: [],
+    },
+},
     },
     {
         timestamps: true,
