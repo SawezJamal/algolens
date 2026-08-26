@@ -5,48 +5,9 @@ const os = require("os");
 const { spawn } = require("child_process");
 
 const Problem = require("../models/Problem");
+const { getRunner } = require("../runners");
 
 const router = express.Router();
-
-function buildCoinChangeHarness(code, testCases) {
-    const testData = testCases.map((testCase) => {
-        const input = JSON.parse(testCase.input);
-
-        return {
-            coins: input.coins || [],
-            amount: input.amount,
-        };
-    });
-
-    const testCasesCode = testData
-        .map((testCase) => {
-            const coinsInitializer =
-                `{${testCase.coins.join(", ")}}`;
-
-            return `
-    {
-        vector<int> coins = ${coinsInitializer};
-        int amount = ${testCase.amount};
-
-        cout << canMakeChange(coins, amount) << endl;
-    }
-`;
-        })
-        .join("\n");
-
-    return `
-#include <bits/stdc++.h>
-using namespace std;
-
-${code}
-
-int main() {
-${testCasesCode}
-
-    return 0;
-}
-`;
-}
 
 function evaluateTestCases(problem, output) {
     const actualOutputs = output
@@ -78,7 +39,8 @@ function evaluateTestCases(problem, output) {
     return {
         passed,
         total: results.length,
-        allPassed: passed === results.length,
+        allPassed:
+            passed === results.length,
         results,
     };
 }
@@ -135,11 +97,10 @@ router.post("/run", async (req, res) => {
 
     let executableCode = code;
 
-    /*
-     * Coin Change Existence currently uses
-     * function-based execution.
-     */
-    if (problem.slug === "coin-change-existence") {
+    // Get generic runner from problem metadata
+    const runner = getRunner(problem);
+
+    if (runner) {
         try {
             const testCases = problem.testCases;
 
@@ -155,11 +116,10 @@ router.post("/run", async (req, res) => {
                 });
             }
 
-            executableCode =
-                buildCoinChangeHarness(
-                    code,
-                    testCases
-                );
+            executableCode = runner(
+                code,
+                testCases
+            );
         } catch (error) {
             console.error(
                 "Failed to build test harness:",
@@ -174,10 +134,7 @@ router.post("/run", async (req, res) => {
             });
         }
     } else {
-        /*
-         * Existing behavior for normal complete
-         * C++ programs.
-         */
+        // Normal complete C++ programs
         if (!/\bmain\s*\(/.test(code)) {
             return res.json({
                 success: false,
@@ -190,7 +147,10 @@ router.post("/run", async (req, res) => {
     }
 
     const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), "algolens-")
+        path.join(
+            os.tmpdir(),
+            "algolens-"
+        )
     );
 
     const sourceFile = path.join(
@@ -234,7 +194,8 @@ router.post("/run", async (req, res) => {
     compiler.stderr.on(
         "data",
         (data) => {
-            compileError += data.toString();
+            compileError +=
+                data.toString();
         }
     );
 
@@ -267,7 +228,8 @@ router.post("/run", async (req, res) => {
             program.stdout.on(
                 "data",
                 (data) => {
-                    output += data.toString();
+                    output +=
+                        data.toString();
                 }
             );
 
@@ -280,18 +242,14 @@ router.post("/run", async (req, res) => {
             );
 
             /*
-             * Keep support for normal custom
-             * input programs.
+             * Runner-based problems already
+             * receive their MongoDB test cases
+             * through the generated main().
              *
-             * Coin Change Existence doesn't use
-             * stdin because its MongoDB test cases
-             * are converted into the generated main().
+             * Normal programs still support
+             * custom stdin input.
              */
-            if (
-                input &&
-                problem.slug !==
-                    "coin-change-existence"
-            ) {
+            if (!runner && input) {
                 program.stdin.write(input);
             }
 
@@ -338,12 +296,10 @@ router.post("/run", async (req, res) => {
                     }
 
                     /*
-                     * Evaluate MongoDB test cases.
+                     * Every problem using a runner
+                     * gets test-case evaluation.
                      */
-                    if (
-                        problem.slug ===
-                        "coin-change-existence"
-                    ) {
+                    if (runner) {
                         const testResults =
                             evaluateTestCases(
                                 problem,
@@ -358,10 +314,7 @@ router.post("/run", async (req, res) => {
                         });
                     }
 
-                    /*
-                     * Existing response for
-                     * normal programs.
-                     */
+                    // Normal program response
                     return res.json({
                         success: true,
                         type: "success",
