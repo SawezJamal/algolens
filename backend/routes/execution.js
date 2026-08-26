@@ -96,55 +96,55 @@ router.post("/run", async (req, res) => {
     let executableCode = code;
 
     /*
-     * Coin Change Existence currently uses
-     * function-based execution.
-     */
-const runner = getRunner(problem);
+ * Problems with registered runners use
+ * function-based execution.
+ */
+    const runner = getRunner(problem);
 
-if (runner) {
-    try {
-        const testCases = problem.testCases;
+    if (runner) {
+        try {
+            const testCases = problem.testCases;
 
-        if (
-            !testCases ||
-            testCases.length === 0
-        ) {
+            if (
+                !testCases ||
+                testCases.length === 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    type: "error",
+                    output:
+                        "No test cases available for this problem.",
+                });
+            }
+
+            executableCode = runner(
+                code,
+                testCases
+            );
+        } catch (error) {
+            console.error(
+                "Failed to build test harness:",
+                error
+            );
+
             return res.status(400).json({
                 success: false,
                 type: "error",
                 output:
-                    "No test cases available for this problem.",
+                    "Could not build test case.",
             });
         }
-
-        executableCode = runner(
-            code,
-            testCases
-        );
-    } catch (error) {
-        console.error(
-            "Failed to build test harness:",
-            error
-        );
-
-        return res.status(400).json({
-            success: false,
-            type: "error",
-            output:
-                "Could not build test case.",
-        });
+    } else {
+        if (!/\bmain\s*\(/.test(code)) {
+            return res.json({
+                success: false,
+                type: "compilation",
+                output:
+                    "Your program does not contain a main() function.\n\n" +
+                    "Run Code requires a complete C++ program with int main().",
+            });
+        }
     }
-} else {
-    if (!/\bmain\s*\(/.test(code)) {
-        return res.json({
-            success: false,
-            type: "compilation",
-            output:
-                "Your program does not contain a main() function.\n\n" +
-                "Run Code requires a complete C++ program with int main().",
-        });
-    }
-}
 
     const tempDir = fs.mkdtempSync(
         path.join(os.tmpdir(), "algolens-")
@@ -237,18 +237,11 @@ if (runner) {
             );
 
             /*
-             * Keep support for normal custom
-             * input programs.
-             *
-             * Coin Change Existence doesn't use
-             * stdin because its MongoDB test cases
-             * are converted into the generated main().
-             */
-            if (
-                input &&
-                problem.slug !==
-                    "coin-change-existence"
-            ) {
+ * Normal programs may use custom stdin.
+ * Runner-based problems use MongoDB test cases
+ * converted into the generated main().
+ */
+            if (input && !runner) {
                 program.stdin.write(input);
             }
 
@@ -297,10 +290,7 @@ if (runner) {
                     /*
                      * Evaluate MongoDB test cases.
                      */
-                    if (
-                        problem.slug ===
-                        "coin-change-existence"
-                    ) {
+                    if (runner) {
                         const testResults =
                             evaluateTestCases(
                                 problem,
