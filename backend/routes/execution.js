@@ -6,12 +6,14 @@ const { spawn } = require("child_process");
 
 const Problem = require("../models/Problem");
 const { getRunner } = require("../runners");
+
 const router = express.Router();
 
 function evaluateTestCases(problem, output) {
     const actualOutputs = output
         .trim()
-        .split(/\s+/);
+        .split(/\r?\n/)
+        .map((line) => line.trim());
 
     const expectedOutputs = problem.testCases.map(
         (testCase) => testCase.output.trim()
@@ -38,7 +40,8 @@ function evaluateTestCases(problem, output) {
     return {
         passed,
         total: results.length,
-        allPassed: passed === results.length,
+        allPassed:
+            passed === results.length,
         results,
     };
 }
@@ -95,10 +98,7 @@ router.post("/run", async (req, res) => {
 
     let executableCode = code;
 
-    /*
- * Problems with registered runners use
- * function-based execution.
- */
+    // Get generic runner from problem metadata
     const runner = getRunner(problem);
 
     if (runner) {
@@ -135,6 +135,7 @@ router.post("/run", async (req, res) => {
             });
         }
     } else {
+        // Normal complete C++ programs
         if (!/\bmain\s*\(/.test(code)) {
             return res.json({
                 success: false,
@@ -147,7 +148,10 @@ router.post("/run", async (req, res) => {
     }
 
     const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), "algolens-")
+        path.join(
+            os.tmpdir(),
+            "algolens-"
+        )
     );
 
     const sourceFile = path.join(
@@ -191,7 +195,8 @@ router.post("/run", async (req, res) => {
     compiler.stderr.on(
         "data",
         (data) => {
-            compileError += data.toString();
+            compileError +=
+                data.toString();
         }
     );
 
@@ -224,7 +229,8 @@ router.post("/run", async (req, res) => {
             program.stdout.on(
                 "data",
                 (data) => {
-                    output += data.toString();
+                    output +=
+                        data.toString();
                 }
             );
 
@@ -237,11 +243,14 @@ router.post("/run", async (req, res) => {
             );
 
             /*
- * Normal programs may use custom stdin.
- * Runner-based problems use MongoDB test cases
- * converted into the generated main().
- */
-            if (input && !runner) {
+             * Runner-based problems already
+             * receive their MongoDB test cases
+             * through the generated main().
+             *
+             * Normal programs still support
+             * custom stdin input.
+             */
+            if (!runner && input) {
                 program.stdin.write(input);
             }
 
@@ -288,7 +297,8 @@ router.post("/run", async (req, res) => {
                     }
 
                     /*
-                     * Evaluate MongoDB test cases.
+                     * Every problem using a runner
+                     * gets test-case evaluation.
                      */
                     if (runner) {
                         const testResults =
@@ -305,10 +315,7 @@ router.post("/run", async (req, res) => {
                         });
                     }
 
-                    /*
-                     * Existing response for
-                     * normal programs.
-                     */
+                    // Normal program response
                     return res.json({
                         success: true,
                         type: "success",

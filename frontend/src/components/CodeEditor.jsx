@@ -11,10 +11,10 @@ function CodeEditor({
     onInputChange,
     output,
     executionStatus,
-    testResults,
     isRunning,
     analysis,
     selectedFinding,
+    testResults,
 }) {
     const editorRef = useRef(null);
     const decorationsRef = useRef([]);
@@ -203,52 +203,31 @@ function CodeEditor({
                 </Typography>
 
                 {executionStatus && (
-    <Box sx={{ mb: 1 }}>
-        {testResults ? (
-            <Typography
-                sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: testResults.allPassed
-                        ? "success.main"
-                        : "warning.main",
-                }}
-            >
-                {testResults.allPassed
-                    ? `✓ All Test Cases Passed (${testResults.passed}/${testResults.total})`
-                    : `⚠ ${testResults.passed}/${testResults.total} Test Cases Passed`}
-            </Typography>
-        ) : (
-            <Typography
-                sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color:
-                        executionStatus === "success"
-                            ? "success.main"
-                            : executionStatus === "timeout"
-                                ? "warning.main"
-                                : "error.main",
-                }}
-            >
-                {executionStatus === "success" &&
-                    "✓ Execution Successful"}
-
-                {executionStatus === "compilation" &&
-                    "✕ Compilation Error"}
-
-                {executionStatus === "runtime" &&
-                    "✕ Runtime Error"}
-
-                {executionStatus === "timeout" &&
-                    "⚠ Time Limit Exceeded"}
-
-                {executionStatus === "connection" &&
-                    "✕ Connection Error"}
-            </Typography>
-        )}
-    </Box>
-)}
+                    <Box
+                        sx={{
+                            mb: 1,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color:
+    executionStatus === "success"
+        ? testResults?.allPassed
+            ? "success.main"
+            : "warning.main"
+        : executionStatus === "timeout"
+            ? "warning.main"
+            : "error.main",
+                        }}
+                    >
+                        {executionStatus === "success" &&
+                            (testResults?.allPassed
+                                ? "✓ All Test Cases Passed"
+                                : "⚠ Execution Completed — Some Test Cases Failed")}
+                        {executionStatus === "compilation" && "✕ Compilation Error"}
+                        {executionStatus === "runtime" && "✕ Runtime Error"}
+                        {executionStatus === "timeout" && "⚠ Time Limit Exceeded"}
+                        {executionStatus === "connection" && "✕ Connection Error"}
+                    </Box>
+                )}
 
                 <Box
                     sx={{

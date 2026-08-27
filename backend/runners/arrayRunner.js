@@ -2,7 +2,8 @@ function buildArrayHarness(
     code,
     testCases,
     functionName,
-    parameters
+    parameters,
+    returnType
 ) {
     const testCasesCode = testCases
         .map((testCase) => {
@@ -30,6 +31,30 @@ function buildArrayHarness(
 
             const vectorInitializer =
                 `{${vectorValues.join(", ")}}`;
+
+            if (returnType === "vector<int>") {
+                return `
+    {
+        vector<int> ${vectorName} =
+            ${vectorInitializer};
+
+        int ${intName} =
+            ${intValue};
+
+        vector<int> result =
+            ${functionName}(
+                ${vectorName},
+                ${intName}
+            );
+
+        for (int value : result) {
+            cout << value << " ";
+        }
+
+        cout << endl;
+    }
+`;
+            }
 
             return `
     {
