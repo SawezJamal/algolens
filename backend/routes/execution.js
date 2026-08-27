@@ -219,9 +219,11 @@ router.post("/run", async (req, res) => {
     );
 
     const executable = path.join(
-        tempDir,
-        "main.exe"
-    );
+    tempDir,
+    process.platform === "win32"
+        ? "main.exe"
+        : "main"
+);
 
     try {
         fs.writeFileSync(
