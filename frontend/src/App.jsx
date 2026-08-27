@@ -5,6 +5,7 @@ import Analyzer from "./pages/Analyzer";
 import History from "./pages/History";
 import Problems from "./pages/Problems";
 import ProblemDetails from "./pages/ProblemDetails";
+import About from "./pages/About";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           path="/problems/:id"
           element={<ProblemDetails />}
         />
+        <Route path="/about" element={<About />} />
       </Routes>
     </BrowserRouter>
   );

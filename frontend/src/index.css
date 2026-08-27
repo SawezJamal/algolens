@@ -1,20 +1,56 @@
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body,
 #root {
-  margin: 0;
-  min-height: 100%;
-  width: 100%;
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-  font-family: "Inter", "Roboto", Arial, sans-serif;
-  background-color: #0b1120;
-  color: #e5e7eb;
+    font-family: "Inter", "Roboto", Arial, sans-serif;
+    background:
+        radial-gradient(
+            circle at 15% 5%,
+            rgba(37, 99, 235, 0.08),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 85% 20%,
+            rgba(99, 102, 241, 0.07),
+            transparent 28%
+        ),
+        #0b1120;
+    color: #e5e7eb;
 }
+
+/* Subtle scrollbar */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0b1120;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #263247;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #34445e;
+}
+
+/* Monaco warning styling */
 
 .algoLens-warning-line {
     background: rgba(245, 158, 11, 0.12);
@@ -24,4 +60,11 @@ body {
     background: rgba(245, 158, 11, 0.9);
     width: 5px !important;
     margin-left: 3px;
+}
+
+/* Selection */
+
+::selection {
+    background: rgba(34, 211, 238, 0.25);
+    color: #f8fafc;
 }
