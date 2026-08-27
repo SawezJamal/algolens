@@ -8,7 +8,7 @@ function predictEfficiency(features) {
             "predict.py"
         );
 
-        const python = spawn("python", [
+        const python = spawn("python3", [
             scriptPath,
         ]);
 
