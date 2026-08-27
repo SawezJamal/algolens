@@ -88,13 +88,16 @@ bool containsDuplicate(vector<int>& nums) {
         setTestResults(result.testResults || null);
 
         if (result.success) {
-            setOutput(result.output);
-        } else {
-            setOutput(
-                result.output ||
-                "Execution failed."
-            );
-        }
+    setOutput(result.output);
+
+    if (result.testResults) {
+        setTestResults(result.testResults);
+    }
+} else {
+    setOutput(
+        result.output || "Execution failed."
+    );
+}
     } catch (error) {
         console.error(
             "Execution error:",
@@ -215,7 +218,6 @@ bool containsDuplicate(vector<int>& nums) {
     onCodeChange={setCode}
     onAnalyze={handleAnalyze}
     onRun={handleRun}
-    testResults={testResults}
     input={input}
     onInputChange={setInput}
     output={output}
@@ -223,6 +225,7 @@ bool containsDuplicate(vector<int>& nums) {
     isRunning={isRunning}
     analysis={analysis}
     selectedFinding={selectedFinding}
+    testResults={testResults}
 />
                     </Paper>
 

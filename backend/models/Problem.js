@@ -105,6 +105,11 @@ execution: {
         default: "",
     },
 
+    returnType: {
+        type: String,
+        default: "",
+    },
+
     parameters: {
         type: [
             {

@@ -25,15 +25,16 @@ function getRunner(problem) {
     }
 
     return (
+    code,
+    testCases
+) =>
+    runner(
         code,
-        testCases
-    ) =>
-        runner(
-            code,
-            testCases,
-            problem.execution.functionName,
-            problem.execution.parameters
-        );
+        testCases,
+        problem.execution.functionName,
+        problem.execution.parameters,
+        problem.execution.returnType
+    );
 }
 
 module.exports = {

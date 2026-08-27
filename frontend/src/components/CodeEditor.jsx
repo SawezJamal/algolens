@@ -7,7 +7,6 @@ function CodeEditor({
     onCodeChange,
     onAnalyze,
     onRun,
-    testResults,
     input,
     onInputChange,
     output,
@@ -15,6 +14,7 @@ function CodeEditor({
     isRunning,
     analysis,
     selectedFinding,
+    testResults,
 }) {
     const editorRef = useRef(null);
     const decorationsRef = useRef([]);
@@ -209,14 +209,19 @@ function CodeEditor({
                             fontSize: 13,
                             fontWeight: 600,
                             color:
-                                executionStatus === "success"
-                                    ? "success.main"
-                                    : executionStatus === "timeout"
-                                        ? "warning.main"
-                                        : "error.main",
+    executionStatus === "success"
+        ? testResults?.allPassed
+            ? "success.main"
+            : "warning.main"
+        : executionStatus === "timeout"
+            ? "warning.main"
+            : "error.main",
                         }}
                     >
-                        {executionStatus === "success" && "✓ Execution Successful"}
+                        {executionStatus === "success" &&
+                            (testResults?.allPassed
+                                ? "✓ All Test Cases Passed"
+                                : "⚠ Execution Completed — Some Test Cases Failed")}
                         {executionStatus === "compilation" && "✕ Compilation Error"}
                         {executionStatus === "runtime" && "✕ Runtime Error"}
                         {executionStatus === "timeout" && "⚠ Time Limit Exceeded"}

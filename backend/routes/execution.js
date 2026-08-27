@@ -12,7 +12,8 @@ const router = express.Router();
 function evaluateTestCases(problem, output) {
     const actualOutputs = output
         .trim()
-        .split(/\s+/);
+        .split(/\r?\n/)
+        .map((line) => line.trim());
 
     const expectedOutputs = problem.testCases.map(
         (testCase) => testCase.output.trim()
