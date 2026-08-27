@@ -25,15 +25,43 @@ function detectLoopInvariant(code) {
                 }
             }
 
-            const containsRepeatedSize =
+            /*
+             * nums.size() in a loop condition such as:
+             *
+             * for (int i = 0; i < nums.size(); i++)
+             *
+             * is normal loop-bound usage and should not
+             * be reported as a loop-invariant optimization.
+             */
+            const isLoopCondition = j === i;
+
+            const containsSizeCall =
                 currentLine.includes(".size()") ||
                 currentLine.includes(".size ()");
+
+            const sizeUsedOutsideCondition =
+                containsSizeCall && !isLoopCondition;
+
+            /*
+             * Detect an actual assignment/repeated computation
+             * involving size inside the loop.
+             */
+            const repeatedSizeComputation =
+                sizeUsedOutsideCondition &&
+                (
+                    /\bint\s+\w+\s*=\s*\w+\.size\s*\(\s*\)/.test(
+                        currentLine
+                    ) ||
+                    /\b\w+\s*=\s*\w+\.size\s*\(\s*\)/.test(
+                        currentLine
+                    )
+                );
 
             if (
                 j > i &&
                 loopStarted &&
                 braceDepth > 0 &&
-                containsRepeatedSize
+                repeatedSizeComputation
             ) {
                 return {
                     startLine: i + 1,
@@ -41,7 +69,10 @@ function detectLoopInvariant(code) {
                 };
             }
 
-            if (loopStarted && braceDepth === 0) {
+            if (
+                loopStarted &&
+                braceDepth === 0
+            ) {
                 break;
             }
         }
@@ -50,4 +81,6 @@ function detectLoopInvariant(code) {
     return null;
 }
 
-module.exports = { detectLoopInvariant };
+module.exports = {
+    detectLoopInvariant,
+};

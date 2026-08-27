@@ -1,7 +1,15 @@
 const analyzeCode = require("../analyzer/codeAnalyzer");
+const extractFeatures = require("../ml/featureExtractor");
+const {
+    predictEfficiency,
+} = require("../ml/mlPredictor");
 const Analysis = require("../models/Analysis");
+const {
+    generateRecommendation,
+} = require("../ml/geminiRecommender");
 
 async function analyze(req, res) {
+    console.log("🔥 ANALYZE CONTROLLER HIT");
     try {
         const { code } = req.body;
 
@@ -12,6 +20,49 @@ async function analyze(req, res) {
         }
 
         const result = analyzeCode(code);
+
+        const features = extractFeatures(code);
+
+        let mlPrediction = null;
+
+        try {
+            mlPrediction =
+                await predictEfficiency(features);
+        } catch (mlError) {
+            console.error(
+                "ML prediction error:",
+                mlError
+            );
+        }
+        result.mlAnalysis = mlPrediction;
+        result.features = features;
+
+        let aiRecommendation = null;
+
+        try {
+            console.log("Calling Gemini...");
+
+            aiRecommendation = await generateRecommendation({
+                code,
+                findings: result.findings || [],
+                mlAnalysis: mlPrediction,
+            });
+
+            console.log(
+                "Gemini recommendation received:",
+                aiRecommendation
+            );
+        } catch (aiError) {
+            console.error(
+                "========== AI RECOMMENDATION ERROR =========="
+            );
+            console.error(aiError);
+            console.error(
+                "============================================="
+            );
+        }
+
+        result.aiRecommendation = aiRecommendation;
 
         const savedAnalysis = await Analysis.create({
             code,

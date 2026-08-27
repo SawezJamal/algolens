@@ -15,27 +15,83 @@ function evaluateTestCases(problem, output) {
         .split(/\r?\n/)
         .map((line) => line.trim());
 
-    const expectedOutputs = problem.testCases.map(
-        (testCase) => testCase.output.trim()
-    );
+    const results = problem.testCases.map(
+        (testCase, index) => {
+            const expected =
+                testCase.output.trim();
 
-    const results = expectedOutputs.map(
-        (expected, index) => {
             const actual =
                 actualOutputs[index] ?? "";
+
+            let passed = actual === expected;
+
+            /*
+             * Two Sum:
+             *
+             * Multiple valid index pairs can exist.
+             *
+             * Example:
+             * nums = [2,5,9,12]
+             * target = 14
+             *
+             * 0 3 -> 2 + 12 = 14
+             * 1 2 -> 5 + 9 = 14
+             *
+             * Both answers are valid.
+             */
+            if (
+                problem.slug === "two-sum"
+            ) {
+                try {
+                    const input =
+                        JSON.parse(
+                            testCase.input
+                        );
+
+                    const values =
+                        actual
+                            .split(/\s+/)
+                            .map(Number);
+
+                    if (
+                        values.length === 2 &&
+                        values.every(
+                            Number.isInteger
+                        )
+                    ) {
+                        const [i, j] =
+                            values;
+
+                        passed =
+                            i >= 0 &&
+                            j >= 0 &&
+                            i < input.nums.length &&
+                            j < input.nums.length &&
+                            i !== j &&
+                            input.nums[i] +
+                                input.nums[j] ===
+                                input.target;
+                    } else {
+                        passed = false;
+                    }
+                } catch (error) {
+                    passed = false;
+                }
+            }
 
             return {
                 testCase: index + 1,
                 expected,
                 actual,
-                passed: actual === expected,
+                passed,
             };
         }
     );
 
-    const passed = results.filter(
-        (result) => result.passed
-    ).length;
+    const passed =
+        results.filter(
+            (result) => result.passed
+        ).length;
 
     return {
         passed,
@@ -84,7 +140,8 @@ router.post("/run", async (req, res) => {
         return res.status(500).json({
             success: false,
             type: "error",
-            output: "Failed to load problem.",
+            output:
+                "Failed to load problem.",
         });
     }
 
@@ -92,7 +149,8 @@ router.post("/run", async (req, res) => {
         return res.status(404).json({
             success: false,
             type: "error",
-            output: "Problem not found.",
+            output:
+                "Problem not found.",
         });
     }
 
@@ -103,7 +161,8 @@ router.post("/run", async (req, res) => {
 
     if (runner) {
         try {
-            const testCases = problem.testCases;
+            const testCases =
+                problem.testCases;
 
             if (
                 !testCases ||

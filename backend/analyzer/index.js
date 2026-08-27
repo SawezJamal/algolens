@@ -3,32 +3,144 @@ const { detectRepeatedLinearSearch } = require("./linearSearchRule");
 const { detectSortingInsideLoop } = require("./sortingInsideLoopRule");
 const { detectLoopInvariant } = require("./loopInvariantRule");
 const { detectRedundantTraversal } = require("./redundantTraversalRule");
+const {
+    detectBinarySearch,
+} = require("./binarySearchRule");
+const {
+    detectCoinChange,
+} = require("./coinChangeRule");
+const {
+    detectRecursion,
+} = require("./recursionRule");
 
 const analyzerRules = [
+    {
+    name: "Binary Search",
+
+    detect: detectBinarySearch,
+
+    result: (details) => ({
+        detected: true,
+
+        pattern: "Binary Search",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity: "O(log n)",
+
+        spaceComplexity: "O(1)",
+
+        recommendation:
+            "No optimization needed",
+
+        explanation:
+            "The solution repeatedly halves the search space, resulting in logarithmic time complexity.",
+
+        optimizedComplexity:
+            "Already optimal: O(log n) time · O(1) space",
+    }),
+},
+{
+    name: "Coin Change DP",
+
+    detect: detectCoinChange,
+
+    result: (details) => ({
+        detected: true,
+
+        pattern: "Dynamic Programming",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity:
+            "O(amount × C)",
+
+        spaceComplexity:
+            "O(amount)",
+
+        recommendation:
+            "No major optimization needed",
+
+        explanation:
+            "The solution uses dynamic programming to determine whether each amount can be formed using the available coin denominations. The outer loop processes each amount and the inner loop checks the available coins.",
+
+        optimizedComplexity:
+            "O(amount × C) time · O(amount) space",
+    }),
+},
+
+{
+    name: "Recursive Solution",
+
+    detect: detectRecursion,
+
+    result: (details) => ({
+        detected: true,
+
+        pattern: "Recursive Solution",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity: "O(C^amount)",
+
+        spaceComplexity: "O(amount)",
+
+        recommendation:
+            "Use Memoization or Dynamic Programming",
+
+        explanation:
+            "The solution recursively explores multiple ways to construct the target amount and repeatedly evaluates the same subproblems. Without memoization, the number of recursive calls can grow exponentially.",
+
+        optimizedComplexity:
+            "O(amount × C) time · O(amount) space",
+
+        optimizedCode: `bool canMakeChange(const vector<int>& coins, int amount) {
+    vector<bool> dp(amount + 1, false);
+    dp[0] = true;
+
+    for (int current = 1; current <= amount; current++) {
+        for (int coin : coins) {
+            if (current >= coin &&
+                dp[current - coin]) {
+                dp[current] = true;
+                break;
+            }
+        }
+    }
+
+    return dp[amount];
+}`,
+    }),
+},
+
     {
         name: "Nested Loop",
 
         detect: detectNestedLoop,
 
         result: (details) => {
-            if (details.type === "duplicate-detection") {
-                return {
-                    detected: true,
-                    pattern: "Duplicate Detection Pattern",
-                    startLine: details.startLine,
-                    endLine: details.endLine,
+if (details.type === "duplicate-detection") {
+    return {
+        detected: true,
+        pattern: "Duplicate Detection Pattern",
+        startLine: details.startLine,
+        endLine: details.endLine,
 
-                    timeComplexity: "O(n²)",
-                    spaceComplexity: "O(1)",
+        timeComplexity: "O(n²)",
+        spaceComplexity: "O(1)",
 
-                    recommendation: "Use a Hash Set",
+        recommendation: "Use a Hash Set",
 
-                    explanation:
-                        "The solution compares pairs of array elements using nested loops to determine whether a duplicate exists. This causes repeated comparisons and results in quadratic time complexity.",
+        explanation:
+            "The solution compares pairs of array elements using nested loops to determine whether a duplicate exists. This causes repeated comparisons and results in quadratic time complexity.",
 
-                    optimizedComplexity: "O(n) average time · O(n) space",
+        optimizedComplexity:
+            "O(n) average time · O(n) space",
 
-                    optimizedCode: `bool containsDuplicate(vector<int>& nums) {
+        optimizedCode: `bool containsDuplicate(vector<int>& nums) {
     unordered_set<int> seen;
 
     for (int num : nums) {
@@ -41,8 +153,46 @@ const analyzerRules = [
 
     return false;
 }`,
-                };
-            }
+    };
+}
+
+if (details.type === "two-sum") {
+    return {
+        detected: true,
+        pattern: "Two Sum Brute Force",
+
+        startLine: details.startLine,
+        endLine: details.endLine,
+
+        timeComplexity: "O(n²)",
+        spaceComplexity: "O(1)",
+
+        recommendation:
+            "Use a Hash Map",
+
+        explanation:
+            "The solution checks pairs of array elements using nested loops. A hash map can store previously visited values and find the required complement in constant average time.",
+
+        optimizedComplexity:
+            "O(n) average time · O(n) space",
+
+        optimizedCode: `vector<int> twoSum(vector<int>& nums, int target) {
+    unordered_map<int, int> seen;
+
+    for (int i = 0; i < nums.size(); i++) {
+        int complement = target - nums[i];
+
+        if (seen.count(complement)) {
+            return {seen[complement], i};
+        }
+
+        seen[nums[i]] = i;
+    }
+
+    return {};
+}`,
+    };
+}
 
             return {
                 detected: true,

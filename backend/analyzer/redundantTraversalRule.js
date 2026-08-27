@@ -8,8 +8,9 @@ function detectRedundantTraversal(code) {
 
         if (!line.startsWith("for")) continue;
 
-        // Detect: for(... < array.size() ...)
-        const match = line.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.size\s*\(/);
+        const match = line.match(
+            /([a-zA-Z_][a-zA-Z0-9_]*)\.size\s*\(/
+        );
 
         if (!match) continue;
 
@@ -21,9 +22,43 @@ function detectRedundantTraversal(code) {
         });
     }
 
+    /*
+     * Nested loops are not redundant traversals.
+     *
+     * Example:
+     *
+     * for (...) {
+     *     for (...) {
+     *
+     * Both loops may use nums.size(), but this
+     * represents nested traversal rather than
+     * two independent passes.
+     */
+
     for (let i = 0; i < traversals.length; i++) {
         for (let j = i + 1; j < traversals.length; j++) {
-            if (traversals[i].array === traversals[j].array) {
+            if (
+                traversals[i].array ===
+                traversals[j].array
+            ) {
+                const betweenLines = lines.slice(
+                    traversals[i].startLine,
+                    traversals[j].startLine - 1
+                );
+
+                const hasClosingBrace =
+                    betweenLines.some((line) =>
+                        line.trim() === "}"
+                    );
+
+                /*
+                 * If the second loop occurs before the
+                 * first loop has closed, it is nested.
+                 */
+                if (!hasClosingBrace) {
+                    continue;
+                }
+
                 return {
                     array: traversals[i].array,
                     startLine: traversals[i].startLine,
@@ -36,4 +71,6 @@ function detectRedundantTraversal(code) {
     return null;
 }
 
-module.exports = { detectRedundantTraversal };
+module.exports = {
+    detectRedundantTraversal,
+};
