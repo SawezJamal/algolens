@@ -17,6 +17,8 @@ import CodeEditor from "../components/CodeEditor";
 import AnalysisPanel from "../components/AnalysisPanel";
 import MLAnalysisCard from "../components/MLAnalysisCard";
 
+import API_URL from "../utils/api";
+
 function Analyzer() {
     const [searchParams] = useSearchParams();
     const problemId = searchParams.get("problem");
@@ -52,7 +54,7 @@ function Analyzer() {
     const handleAnalyze = async () => {
         try {
             const response = await fetch(
-                "http://localhost:5000/api/analyze",
+                `${API_URL}/api/analyze`,
                 {
                     method: "POST",
                     headers: {
@@ -89,7 +91,7 @@ function Analyzer() {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/run",
+                `${API_URL}/api/run`,
                 {
                     method: "POST",
                     headers: {
@@ -144,7 +146,7 @@ function Analyzer() {
         const loadAnalysis = async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/analyses/${id}`
+                    `${API_URL}/api/analyses/${id}`
                 );
 
                 if (!response.ok) {
@@ -191,7 +193,7 @@ function Analyzer() {
         const loadProblem = async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/problems/${problemId}`
+                    `${API_URL}/api/problems/${problemId}`
                 );
 
                 if (!response.ok) {

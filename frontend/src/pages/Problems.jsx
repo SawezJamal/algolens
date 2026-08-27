@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
+import API_URL from "../utils/api";
+
 function Problems() {
     const navigate = useNavigate();
 
@@ -27,7 +29,7 @@ function Problems() {
         const fetchProblems = async () => {
             try {
                 const response = await fetch(
-                    "http://localhost:5000/api/problems"
+                    `${API_URL}/api/problems`
                 );
 
                 if (!response.ok) {

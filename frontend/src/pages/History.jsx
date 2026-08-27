@@ -9,6 +9,8 @@ import {
     Typography,
 } from "@mui/material";
 
+import API_URL from "../utils/api";
+
 function History() {
     const navigate = useNavigate();
     const [analyses, setAnalyses] = useState([]);
@@ -19,7 +21,7 @@ function History() {
         const fetchHistory = async () => {
             try {
                 const response = await fetch(
-                    "http://localhost:5000/api/analyses"
+                    `${API_URL}/api/analyses`
                 );
 
                 if (!response.ok) {
