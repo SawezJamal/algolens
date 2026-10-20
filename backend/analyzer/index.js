@@ -79,40 +79,32 @@ const analyzerRules = [
     result: (details) => ({
         detected: true,
 
-        pattern: "Recursive Solution",
+        pattern:
+            "Recursive Solution",
 
-        startLine: details.startLine,
-        endLine: details.endLine,
+        startLine:
+            details.startLine,
 
-        timeComplexity: "O(C^amount)",
+        endLine:
+            details.endLine,
 
-        spaceComplexity: "O(amount)",
+        timeComplexity:
+            "O(2^n)",
+
+        spaceComplexity:
+            "O(n)",
 
         recommendation:
             "Use Memoization or Dynamic Programming",
 
         explanation:
-            "The solution recursively explores multiple ways to construct the target amount and repeatedly evaluates the same subproblems. Without memoization, the number of recursive calls can grow exponentially.",
+            "The recursive implementation may recompute the same subproblems multiple times, resulting in exponential time complexity.",
 
         optimizedComplexity:
-            "O(amount × C) time · O(amount) space",
+            "O(n) time · O(n) space with memoization",
 
-        optimizedCode: `bool canMakeChange(const vector<int>& coins, int amount) {
-    vector<bool> dp(amount + 1, false);
-    dp[0] = true;
-
-    for (int current = 1; current <= amount; current++) {
-        for (int coin : coins) {
-            if (current >= coin &&
-                dp[current - coin]) {
-                dp[current] = true;
-                break;
-            }
-        }
-    }
-
-    return dp[amount];
-}`,
+        optimizedCode:
+            null,
     }),
 },
 

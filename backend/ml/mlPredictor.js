@@ -8,9 +8,16 @@ function predictEfficiency(features) {
             "predict.py"
         );
 
-        const python = spawn("python3", [
-            scriptPath,
-        ]);
+        // Windows uses "python", Linux/macOS commonly use "python3"
+        const pythonCommand =
+            process.platform === "win32"
+                ? "python"
+                : "python3";
+
+        const python = spawn(
+            pythonCommand,
+            [scriptPath]
+        );
 
         let output = "";
         let errorOutput = "";
@@ -21,6 +28,14 @@ function predictEfficiency(features) {
 
         python.stderr.on("data", (data) => {
             errorOutput += data.toString();
+        });
+
+        python.on("error", (error) => {
+            reject(
+                new Error(
+                    `Failed to start Python: ${error.message}`
+                )
+            );
         });
 
         python.on("close", (exitCode) => {
@@ -40,7 +55,11 @@ function predictEfficiency(features) {
 
                 resolve(result);
             } catch (error) {
-                reject(error);
+                reject(
+                    new Error(
+                        `Invalid ML output: ${output}`
+                    )
+                );
             }
         });
 

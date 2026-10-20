@@ -64,11 +64,53 @@ async function analyze(req, res) {
 
         result.aiRecommendation = aiRecommendation;
 
-        const savedAnalysis = await Analysis.create({
-            code,
-            detected: result.detected,
-            findings: result.findings || [],
-        });
+        const savedAnalysis =
+    await Analysis.create({
+        code,
+
+        detected:
+            Boolean(result.detected),
+
+        findings:
+            result.findings ||
+            [],
+
+        pattern:
+            result.pattern ||
+            "Not determined",
+
+        timeComplexity:
+            result.timeComplexity ||
+            "Not determined",
+
+        spaceComplexity:
+            result.spaceComplexity ||
+            "Not determined",
+
+        recommendation:
+            result.recommendation ||
+            "No optimization suggested",
+
+        explanation:
+            result.explanation ||
+            "",
+
+        optimizedComplexity:
+            result.optimizedComplexity ||
+            "Not determined",
+
+        optimizedCode:
+            result.optimizedCode ||
+            null,
+
+        mlAnalysis:
+            mlPrediction,
+
+        features,
+
+        aiRecommendation:
+            aiRecommendation,
+    });
 
         console.log("Analysis saved:", savedAnalysis._id);
 
