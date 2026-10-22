@@ -23,27 +23,137 @@ function evaluateTestCases(problem, output) {
             const actual =
                 actualOutputs[index] ?? "";
 
-            let passed = actual === expected;
+            let passed =
+                actual === expected;
 
             /*
-             * Two Sum:
+             * Boolean outputs
+             */
+            if (
+                problem.execution &&
+                problem.execution.returnType === "bool"
+            ) {
+                const normalizeBool = (value) => {
+                    const normalized =
+                        String(value)
+                            .trim()
+                            .toLowerCase();
+
+                    if (
+                        normalized === "true" ||
+                        normalized === "1"
+                    ) {
+                        return true;
+                    }
+
+                    if (
+                        normalized === "false" ||
+                        normalized === "0"
+                    ) {
+                        return false;
+                    }
+
+                    return null;
+                };
+
+                const expectedBool =
+                    normalizeBool(expected);
+
+                const actualBool =
+                    normalizeBool(actual);
+
+                passed =
+                    expectedBool !== null &&
+                    actualBool !== null &&
+                    expectedBool === actualBool;
+            }
+
+            /*
+             * vector<int>
+             */
+            if (
+    problem.execution &&
+    problem.execution.returnType ===
+        "vector<int>"
+) {
+    try {
+        let expectedArray;
+
+        /*
+         * vector<int> outputs can be stored in
+         * either of these formats:
+         *
+         * JSON:
+         * [0,1]
+         *
+         * Whitespace:
+         * 3 4
+         * -1 -1
+         *
+         * Support both formats.
+         */
+
+        const trimmedExpected =
+            expected.trim();
+
+        if (
+            trimmedExpected.startsWith("[") &&
+            trimmedExpected.endsWith("]")
+        ) {
+            expectedArray =
+                JSON.parse(
+                    trimmedExpected
+                );
+        } else {
+            expectedArray =
+                trimmedExpected
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map(Number);
+        }
+
+        const actualArray =
+            actual
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(Number);
+
+        passed =
+            Array.isArray(
+                expectedArray
+            ) &&
+            expectedArray.length ===
+                actualArray.length &&
+            expectedArray.every(
+                (value, i) =>
+                    Number.isFinite(
+                        actualArray[i]
+                    ) &&
+                    actualArray[i] ===
+                        Number(value)
+            );
+
+    } catch (error) {
+        console.error(
+            "vector<int> evaluation error:",
+            error
+        );
+
+        passed = false;
+    }
+}
+
+            /*
+             * Two Sum
              *
-             * Multiple valid index pairs can exist.
-             *
-             * Example:
-             * nums = [2,5,9,12]
-             * target = 14
-             *
-             * 0 3 -> 2 + 12 = 14
-             * 1 2 -> 5 + 9 = 14
-             *
-             * Both answers are valid.
+             * Any valid pair of indices is accepted.
              */
             if (
                 problem.slug === "two-sum"
             ) {
                 try {
-                    const input =
+                    const testInput =
                         JSON.parse(
                             testCase.input
                         );
@@ -51,6 +161,7 @@ function evaluateTestCases(problem, output) {
                     const values =
                         actual
                             .split(/\s+/)
+                            .filter(Boolean)
                             .map(Number);
 
                     if (
@@ -65,16 +176,189 @@ function evaluateTestCases(problem, output) {
                         passed =
                             i >= 0 &&
                             j >= 0 &&
-                            i < input.nums.length &&
-                            j < input.nums.length &&
+                            i <
+                                testInput.nums
+                                    .length &&
+                            j <
+                                testInput.nums
+                                    .length &&
                             i !== j &&
-                            input.nums[i] +
-                                input.nums[j] ===
-                                input.target;
+                            testInput.nums[i] +
+                                testInput.nums[j] ===
+                                testInput.target;
                     } else {
                         passed = false;
                     }
                 } catch (error) {
+                    passed = false;
+                }
+            }
+
+            /*
+             * Group Anagrams
+             *
+             * Runner output format:
+             *
+             * {eat,tea,ate} {tan,nat} {bat}
+             *
+             * Empty string:
+             *
+             * {<EMPTY>}
+             *
+             * Both group order and word order
+             * are ignored.
+             */
+            if (
+                problem.slug ===
+                "group-anagrams"
+            ) {
+                try {
+                    const expectedGroups =
+                        JSON.parse(expected);
+
+                    const actualGroups = [];
+
+                    /*
+                     * Extract every {...} group.
+                     */
+                    const groupMatches =
+                        actual.match(
+                            /\{[^}]*\}/g
+                        ) || [];
+
+                    for (
+                        const groupText
+                        of groupMatches
+                    ) {
+                        const content =
+                            groupText.slice(
+                                1,
+                                -1
+                            );
+
+                        /*
+                         * Empty string case.
+                         */
+                        if (
+                            content ===
+                            "<EMPTY>"
+                        ) {
+                            actualGroups.push(
+                                [""]
+                            );
+
+                            continue;
+                        }
+
+                        /*
+                         * Safety for empty group.
+                         */
+                        if (
+                            content.trim() ===
+                            ""
+                        ) {
+                            actualGroups.push(
+                                [""]
+                            );
+
+                            continue;
+                        }
+
+                        const values =
+                            content
+                                .split(",")
+                                .map(
+                                    (value) =>
+                                        value.trim()
+                                )
+                                .filter(
+                                    (value) =>
+                                        value.length >
+                                        0
+                                );
+
+                        actualGroups.push(
+                            values
+                        );
+                    }
+
+                    /*
+                     * Normalize:
+                     *
+                     * 1. Sort strings inside
+                     *    each group.
+                     *
+                     * 2. Sort groups.
+                     */
+                    const normalizeGroups =
+                        (groups) =>
+                            groups
+                                .map(
+                                    (group) =>
+                                        [...group]
+                                            .sort()
+                                )
+                                .sort(
+                                    (a, b) =>
+                                        JSON.stringify(
+                                            a
+                                        ).localeCompare(
+                                            JSON.stringify(
+                                                b
+                                            )
+                                        )
+                                );
+
+                    const normalizedExpected =
+                        normalizeGroups(
+                            expectedGroups
+                        );
+
+                    const normalizedActual =
+                        normalizeGroups(
+                            actualGroups
+                        );
+
+                    passed =
+                        JSON.stringify(
+                            normalizedActual
+                        ) ===
+                        JSON.stringify(
+                            normalizedExpected
+                        );
+
+                    /*
+                     * Useful debugging.
+                     */
+                    if (!passed) {
+                        console.log(
+                            "=== GROUP ANAGRAM DEBUG ==="
+                        );
+
+                        console.log(
+                            "Expected:",
+                            JSON.stringify(
+                                normalizedExpected
+                            )
+                        );
+
+                        console.log(
+                            "Actual:",
+                            JSON.stringify(
+                                normalizedActual
+                            )
+                        );
+
+                        console.log(
+                            "============================"
+                        );
+                    }
+                } catch (error) {
+                    console.error(
+                        "Group Anagrams evaluation error:",
+                        error
+                    );
+
                     passed = false;
                 }
             }
@@ -88,304 +372,454 @@ function evaluateTestCases(problem, output) {
         }
     );
 
-    const passed =
+    const passedCount =
         results.filter(
-            (result) => result.passed
+            (result) =>
+                result.passed
         ).length;
 
     return {
-        passed,
+        passed: passedCount,
         total: results.length,
         allPassed:
-            passed === results.length,
+            results.length > 0 &&
+            passedCount ===
+                results.length,
         results,
     };
 }
 
-router.post("/run", async (req, res) => {
-    const {
-        code,
-        input = "",
-        problemId,
-    } = req.body;
+router.post(
+    "/run",
+    async (req, res) => {
+        const {
+            code,
+            input = "",
+            problemId,
+        } = req.body;
 
-    if (!code) {
-        return res.status(400).json({
-            success: false,
-            type: "error",
-            output: "Code is required.",
-        });
-    }
-
-    if (!problemId) {
-        return res.status(400).json({
-            success: false,
-            type: "error",
-            output: "Problem ID is required.",
-        });
-    }
-
-    let problem;
-
-    try {
-        problem = await Problem.findOne({
-            slug: problemId,
-        });
-    } catch (error) {
-        console.error(
-            "Failed to load problem:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            type: "error",
-            output:
-                "Failed to load problem.",
-        });
-    }
-
-    if (!problem) {
-        return res.status(404).json({
-            success: false,
-            type: "error",
-            output:
-                "Problem not found.",
-        });
-    }
-
-    let executableCode = code;
-
-    // Get generic runner from problem metadata
-    const runner = getRunner(problem);
-
-    if (runner) {
-        try {
-            const testCases =
-                problem.testCases;
-
-            if (
-                !testCases ||
-                testCases.length === 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    type: "error",
-                    output:
-                        "No test cases available for this problem.",
-                });
-            }
-
-            executableCode = runner(
-                code,
-                testCases
-            );
-        } catch (error) {
-            console.error(
-                "Failed to build test harness:",
-                error
-            );
-
+        if (!code) {
             return res.status(400).json({
                 success: false,
                 type: "error",
                 output:
-                    "Could not build test case.",
+                    "Code is required.",
+                analysisAllowed: false,
             });
         }
-    } else {
-        // Normal complete C++ programs
-        if (!/\bmain\s*\(/.test(code)) {
-            return res.json({
+
+        if (!problemId) {
+            return res.status(400).json({
                 success: false,
-                type: "compilation",
+                type: "error",
                 output:
-                    "Your program does not contain a main() function.\n\n" +
-                    "Run Code requires a complete C++ program with int main().",
+                    "Problem ID is required.",
+                analysisAllowed: false,
             });
         }
-    }
 
-    const tempDir = fs.mkdtempSync(
-        path.join(
-            os.tmpdir(),
-            "algolens-"
-        )
-    );
+        let problem;
 
-    const sourceFile = path.join(
-        tempDir,
-        "main.cpp"
-    );
+        try {
+            problem =
+                await Problem.findOne({
+                    slug: problemId,
+                });
+        } catch (error) {
+            console.error(
+                "Failed to load problem:",
+                error
+            );
 
-    const executable = path.join(
-    tempDir,
-    process.platform === "win32"
-        ? "main.exe"
-        : "main"
-);
-
-    try {
-        fs.writeFileSync(
-            sourceFile,
-            executableCode
-        );
-    } catch (error) {
-        fs.rmSync(tempDir, {
-            recursive: true,
-            force: true,
-        });
-
-        return res.status(500).json({
-            success: false,
-            type: "error",
-            output:
-                "Could not create temporary source file.",
-        });
-    }
-
-    // Compile C++
-    const compiler = spawn("g++", [
-        sourceFile,
-        "-o",
-        executable,
-    ]);
-
-    let compileError = "";
-
-    compiler.stderr.on(
-        "data",
-        (data) => {
-            compileError +=
-                data.toString();
+            return res.status(500).json({
+                success: false,
+                type: "error",
+                output:
+                    "Failed to load problem.",
+                analysisAllowed: false,
+            });
         }
-    );
 
-    compiler.on(
-        "close",
-        (exitCode) => {
-            if (exitCode !== 0) {
-                fs.rmSync(tempDir, {
+        if (!problem) {
+            return res.status(404).json({
+                success: false,
+                type: "error",
+                output:
+                    "Problem not found.",
+                analysisAllowed: false,
+            });
+        }
+
+        let executableCode = code;
+
+        /*
+         * Get generic runner from
+         * problem metadata.
+         */
+        const runner =
+            getRunner(problem);
+
+        if (runner) {
+            try {
+                const testCases =
+                    problem.testCases;
+
+                if (
+                    !testCases ||
+                    testCases.length === 0
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        type: "error",
+                        output:
+                            "No test cases available for this problem.",
+                        analysisAllowed: false,
+                    });
+                }
+
+                executableCode = await runner(
+                    code,
+                    testCases
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to build test harness:",
+                    error
+                );
+
+                return res.status(400).json({
+                    success: false,
+                    type: "error",
+                    output:
+                        "Could not build test case.",
+                    analysisAllowed: false,
+                });
+            }
+        } else {
+            /*
+             * Normal complete C++
+             * programs require main().
+             */
+            if (
+                !/\bmain\s*\(/.test(code)
+            ) {
+                return res.json({
+                    success: false,
+                    type: "compilation",
+                    output:
+                        "Your program does not contain a main() function.\n\n" +
+                        "Run Code requires a complete C++ program with int main().",
+                    analysisAllowed: false,
+                });
+            }
+        }
+
+        const tempDir =
+            fs.mkdtempSync(
+                path.join(
+                    os.tmpdir(),
+                    "algolens-"
+                )
+            );
+
+        const sourceFile =
+            path.join(
+                tempDir,
+                "main.cpp"
+            );
+
+        const executable =
+            path.join(
+                tempDir,
+                process.platform ===
+                    "win32"
+                    ? "main.exe"
+                    : "main"
+            );
+
+        try {
+            fs.writeFileSync(
+                sourceFile,
+                executableCode
+            );
+        } catch (error) {
+            fs.rmSync(
+                tempDir,
+                {
                     recursive: true,
                     force: true,
-                });
+                }
+            );
+
+            return res.status(500).json({
+                success: false,
+                type: "error",
+                output:
+                    "Could not create temporary source file.",
+                analysisAllowed: false,
+            });
+        }
+
+        /*
+         * Compile C++
+         */
+        const compiler =
+            spawn("g++", [
+                sourceFile,
+                "-o",
+                executable,
+            ]);
+
+        let compileError = "";
+
+        compiler.stderr.on(
+            "data",
+            (data) => {
+                compileError +=
+                    data.toString();
+            }
+        );
+
+        compiler.on(
+            "error",
+            (error) => {
+                console.error(
+                    "Compiler error:",
+                    error
+                );
+
+                fs.rmSync(
+                    tempDir,
+                    {
+                        recursive: true,
+                        force: true,
+                    }
+                );
 
                 return res.json({
                     success: false,
                     type: "compilation",
                     output:
-                        compileError ||
-                        "Compilation failed.",
+                        error.message ||
+                        "Could not start compiler.",
+                    analysisAllowed: false,
                 });
             }
+        );
 
-            // Run compiled program
-            const program = spawn(
-                executable
-            );
+        compiler.on(
+            "close",
+            (exitCode) => {
+                if (exitCode !== 0) {
+                    fs.rmSync(
+                        tempDir,
+                        {
+                            recursive: true,
+                            force: true,
+                        }
+                    );
 
-            let output = "";
-            let runtimeError = "";
-
-            program.stdout.on(
-                "data",
-                (data) => {
-                    output +=
-                        data.toString();
-                }
-            );
-
-            program.stderr.on(
-                "data",
-                (data) => {
-                    runtimeError +=
-                        data.toString();
-                }
-            );
-
-            /*
-             * Runner-based problems already
-             * receive their MongoDB test cases
-             * through the generated main().
-             *
-             * Normal programs still support
-             * custom stdin input.
-             */
-            if (!runner && input) {
-                program.stdin.write(input);
-            }
-
-            program.stdin.end();
-
-            // 3 second execution limit
-            let timedOut = false;
-
-            const timeout = setTimeout(
-                () => {
-                    timedOut = true;
-                    program.kill();
-                },
-                3000
-            );
-
-            program.on(
-                "close",
-                (exitCode) => {
-                    clearTimeout(timeout);
-
-                    fs.rmSync(tempDir, {
-                        recursive: true,
-                        force: true,
+                    return res.json({
+                        success: false,
+                        type: "compilation",
+                        output:
+                            compileError ||
+                            "Compilation failed.",
+                        analysisAllowed: false,
                     });
+                }
 
-                    if (timedOut) {
-                        return res.json({
-                            success: false,
-                            type: "timeout",
-                            output:
-                                "Execution timed out.",
-                        });
+                /*
+                 * Run compiled program
+                 */
+                const program =
+                    spawn(
+                        executable
+                    );
+
+                let output = "";
+                let runtimeError = "";
+
+                program.stdout.on(
+                    "data",
+                    (data) => {
+                        output +=
+                            data.toString();
                     }
+                );
 
-                    if (exitCode !== 0) {
+                program.stderr.on(
+                    "data",
+                    (data) => {
+                        runtimeError +=
+                            data.toString();
+                    }
+                );
+
+                /*
+                 * Normal programs may
+                 * receive custom stdin.
+                 *
+                 * Runner-based problems
+                 * receive test cases through
+                 * the generated main().
+                 */
+                if (
+                    !runner &&
+                    input
+                ) {
+                    program.stdin.write(
+                        input
+                    );
+                }
+
+                program.stdin.end();
+
+                /*
+                 * 3 second execution limit
+                 */
+                let timedOut = false;
+
+                const timeout =
+                    setTimeout(
+                        () => {
+                            timedOut =
+                                true;
+
+                            program.kill();
+                        },
+                        3000
+                    );
+
+                program.on(
+                    "error",
+                    (error) => {
+                        clearTimeout(
+                            timeout
+                        );
+
+                        fs.rmSync(
+                            tempDir,
+                            {
+                                recursive: true,
+                                force: true,
+                            }
+                        );
+
                         return res.json({
                             success: false,
                             type: "runtime",
                             output:
-                                runtimeError ||
-                                "Runtime error.",
+                                error.message ||
+                                "Failed to execute program.",
+                            analysisAllowed: false,
                         });
                     }
+                );
 
-                    /*
-                     * Every problem using a runner
-                     * gets test-case evaluation.
-                     */
-                    if (runner) {
-                        const testResults =
-                            evaluateTestCases(
-                                problem,
-                                output
-                            );
+                program.on(
+                    "close",
+                    (exitCode) => {
+                        clearTimeout(
+                            timeout
+                        );
 
+                        fs.rmSync(
+                            tempDir,
+                            {
+                                recursive: true,
+                                force: true,
+                            }
+                        );
+
+                        /*
+                         * Timeout
+                         */
+                        if (timedOut) {
+                            return res.json({
+                                success: false,
+                                type: "timeout",
+                                output:
+                                    "Execution timed out.",
+                                analysisAllowed: false,
+                            });
+                        }
+
+                        /*
+                         * Runtime error
+                         *
+                         * This catches:
+                         * std::bad_alloc
+                         * segmentation faults
+                         * abort()
+                         * uncaught exceptions
+                         * etc.
+                         */
+                        if (
+                            exitCode !== 0
+                        ) {
+                            return res.json({
+                                success: false,
+                                type: "runtime",
+                                output:
+                                    runtimeError ||
+                                    "Runtime error.",
+                                analysisAllowed: false,
+                            });
+                        }
+
+                        /*
+                         * Runner-based problems
+                         * must pass every test case
+                         * before analysis is allowed.
+                         */
+                        if (runner) {
+                            console.log("=== RAW PROGRAM OUTPUT ===");
+                            console.log(JSON.stringify(output));
+                            console.log("=== TEST CASES ===");
+                            console.log(JSON.stringify(problem.testCases, null, 2));
+                            const testResults =
+                                evaluateTestCases(
+                                    problem,
+                                    output
+                                );
+
+                            return res.json({
+                                success: true,
+                                type:
+                                    testResults.allPassed
+                                        ? "success"
+                                        : "test-failed",
+
+                                output,
+
+                                testResults,
+
+                                analysisAllowed:
+                                    testResults.allPassed,
+                            });
+                        }
+
+                        /*
+                         * Normal complete
+                         * programs.
+                         *
+                         * There are no managed
+                         * test cases, so they can
+                         * be analyzed after
+                         * successful execution.
+                         */
                         return res.json({
                             success: true,
                             type: "success",
                             output,
-                            testResults,
+                            analysisAllowed: true,
                         });
                     }
-
-                    // Normal program response
-                    return res.json({
-                        success: true,
-                        type: "success",
-                        output,
-                    });
-                }
-            );
-        }
-    );
-});
+                );
+            }
+        );
+    }
+);
 
 module.exports = router;

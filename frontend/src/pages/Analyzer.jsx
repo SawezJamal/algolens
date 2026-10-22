@@ -51,43 +51,162 @@ function Analyzer() {
     const [analysis, setAnalysis] =
         useState(null);
 
-    const handleAnalyze = async () => {
-        try {
-            const response = await fetch(
-                `${API_URL}/api/analyze`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-                    body: JSON.stringify({ code }),
-                }
+const handleAnalyze = async () => {
+    setIsRunning(true);
+    setOutput("");
+    setExecutionStatus(null);
+    setTestResults(null);
+    setAnalysis(null);
+
+    try {
+        // =====================================================
+        // STEP 1: RUN CODE + ALL TEST CASES
+        // =====================================================
+
+        const runResponse = await fetch(
+            `${API_URL}/api/run`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    code,
+                    input,
+                    problemId,
+                }),
+            }
+        );
+
+        const runResult =
+            await runResponse.json();
+
+        // Save execution information
+        setExecutionStatus(
+            runResult.type || null
+        );
+
+        setTestResults(
+            runResult.testResults || null
+        );
+
+        // =====================================================
+        // STEP 2: COMPILATION / RUNTIME FAILURE
+        // =====================================================
+
+        if (!runResult.success) {
+            setOutput(
+                runResult.output ||
+                "Execution failed."
             );
 
-            if (!response.ok) {
-                throw new Error(
-                    "Failed to analyze code"
-                );
+            setAnalysis(null);
+            return;
+        }
+
+        // =====================================================
+        // STEP 3: TEST CASE VALIDATION
+        // =====================================================
+
+        const results =
+            runResult.testResults;
+
+        // Backend MUST return test results
+        if (!results) {
+            setExecutionStatus("failed");
+
+            setOutput(
+                "Analysis blocked: test case results were not returned."
+            );
+
+            setAnalysis(null);
+            return;
+        }
+
+        const {
+            passed = 0,
+            total = 0,
+            allPassed = false,
+        } = results;
+
+        // =====================================================
+        // STEP 4: BLOCK ANALYSIS IF ANY TEST FAILS
+        // =====================================================
+
+        if (!allPassed) {
+            setExecutionStatus("failed");
+
+            setOutput(
+                `⚠ ${passed}/${total} test cases passed.\n\n` +
+                `Analysis blocked: all test cases must pass before analysis.`
+            );
+
+            setAnalysis(null);
+            return;
+        }
+
+        // =====================================================
+        // STEP 5: ALL TEST CASES PASSED
+        // ONLY NOW RUN STATIC ANALYSIS + ML + AI
+        // =====================================================
+
+        setExecutionStatus("success");
+
+        setOutput(
+            `✓ All ${total} test cases passed.`
+        );
+
+        const response = await fetch(
+            `${API_URL}/api/analyze`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    code,
+                    problemId,
+                }),
             }
+        );
 
-            const result =
-                await response.json();
-
-            setAnalysis(result);
-        } catch (error) {
-            console.error(
-                "Analysis error:",
-                error
+        if (!response.ok) {
+            throw new Error(
+                "Failed to analyze code"
             );
         }
-    };
 
+        const result =
+            await response.json();
+
+        setAnalysis(result);
+
+    } catch (error) {
+        console.error(
+            "Analysis error:",
+            error
+        );
+
+        setExecutionStatus(
+            "connection"
+        );
+
+        setOutput(
+            "Could not run code or analyze it."
+        );
+
+        setAnalysis(null);
+
+    } finally {
+        setIsRunning(false);
+    }
+};
     const handleRun = async () => {
         setIsRunning(true);
         setOutput("");
         setExecutionStatus(null);
         setTestResults(null);
+        setAnalysis(null);
 
         try {
             const response = await fetch(
@@ -115,7 +234,25 @@ function Analyzer() {
             );
 
             if (result.success) {
-                setOutput(result.output);
+                if (result.testResults) {
+                    const {
+                        passed,
+                        total,
+                        allPassed,
+                    } = result.testResults;
+
+                    if (allPassed) {
+                        setOutput(
+                            `✓ All ${total} test cases passed.\n\n${result.output || ""}`
+                        );
+                    } else {
+                        setOutput(
+                            `⚠ ${passed}/${total} test cases passed.\n\n${result.output || ""}`
+                        );
+                    }
+                } else {
+                    setOutput(result.output);
+                }
             } else {
                 setOutput(
                     result.output ||
@@ -602,95 +739,95 @@ function Analyzer() {
                             </Box>
 
                             <Box
-    sx={{
-        p: {
-            xs: 1.2,
-            md: 2,
-        },
-    }}
->
-    {selectedProblem ? (
-        <CodeEditor
-            code={code}
-            onCodeChange={setCode}
-            onAnalyze={handleAnalyze}
-            onRun={handleRun}
-            input={input}
-            onInputChange={setInput}
-            output={output}
-            executionStatus={executionStatus}
-            testResults={testResults}
-            isRunning={isRunning}
-            analysis={analysis}
-            selectedFinding={selectedFinding}
-        />
-    ) : (
-        <Box
-            sx={{
-                height: 410,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                textAlign: "center",
-                borderRadius: "10px",
-                background: "#0b1120",
-                border:
-                    "1px solid rgba(148, 163, 184, 0.08)",
-            }}
-        >
-            <Box
-                sx={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: "14px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 2,
-                    color: "#67e8f9",
-                    background:
-                        "rgba(34, 211, 238, 0.08)",
-                    border:
-                        "1px solid rgba(34, 211, 238, 0.16)",
-                }}
-            >
-                <Typography
-                    sx={{
-                        fontSize: "1.15rem",
-                        fontWeight: 700,
-                    }}
-                >
-                    &lt;/&gt;
-                </Typography>
-            </Box>
+                                sx={{
+                                    p: {
+                                        xs: 1.2,
+                                        md: 2,
+                                    },
+                                }}
+                            >
+                                {selectedProblem ? (
+                                    <CodeEditor
+                                        code={code}
+                                        onCodeChange={setCode}
+                                        onAnalyze={handleAnalyze}
+                                        onRun={handleRun}
+                                        input={input}
+                                        onInputChange={setInput}
+                                        output={output}
+                                        executionStatus={executionStatus}
+                                        testResults={testResults}
+                                        isRunning={isRunning}
+                                        analysis={analysis}
+                                        selectedFinding={selectedFinding}
+                                    />
+                                ) : (
+                                    <Box
+                                        sx={{
+                                            height: 410,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            flexDirection: "column",
+                                            textAlign: "center",
+                                            borderRadius: "10px",
+                                            background: "#0b1120",
+                                            border:
+                                                "1px solid rgba(148, 163, 184, 0.08)",
+                                        }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                width: 52,
+                                                height: 52,
+                                                borderRadius: "14px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                mb: 2,
+                                                color: "#67e8f9",
+                                                background:
+                                                    "rgba(34, 211, 238, 0.08)",
+                                                border:
+                                                    "1px solid rgba(34, 211, 238, 0.16)",
+                                            }}
+                                        >
+                                            <Typography
+                                                sx={{
+                                                    fontSize: "1.15rem",
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                &lt;/&gt;
+                                            </Typography>
+                                        </Box>
 
-            <Typography
-                sx={{
-                    color: "#e2e8f0",
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    mb: 0.8,
-                }}
-            >
-                Select a problem to begin
-            </Typography>
+                                        <Typography
+                                            sx={{
+                                                color: "#e2e8f0",
+                                                fontWeight: 700,
+                                                fontSize: "1rem",
+                                                mb: 0.8,
+                                            }}
+                                        >
+                                            Select a problem to begin
+                                        </Typography>
 
-            <Typography
-                sx={{
-                    color: "#64748b",
-                    fontSize: "0.82rem",
-                    maxWidth: 360,
-                    lineHeight: 1.6,
-                }}
-            >
-                Choose a DSA problem from the
-                Problems section to load its
-                starter code and test cases.
-            </Typography>
-        </Box>
-    )}
-</Box>
+                                        <Typography
+                                            sx={{
+                                                color: "#64748b",
+                                                fontSize: "0.82rem",
+                                                maxWidth: 360,
+                                                lineHeight: 1.6,
+                                            }}
+                                        >
+                                            Choose a DSA problem from the
+                                            Problems section to load its
+                                            starter code and test cases.
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
                         </Paper>
 
                         {/* Analysis results */}

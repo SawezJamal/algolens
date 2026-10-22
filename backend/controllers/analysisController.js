@@ -4,14 +4,19 @@ const {
     predictEfficiency,
 } = require("../ml/mlPredictor");
 const Analysis = require("../models/Analysis");
+const Problem = require("../models/Problem");
 const {
     generateRecommendation,
 } = require("../ml/geminiRecommender");
 
 async function analyze(req, res) {
     console.log("🔥 ANALYZE CONTROLLER HIT");
+
     try {
-        const { code } = req.body;
+        const {
+            code,
+            problemId,
+        } = req.body;
 
         if (!code) {
             return res.status(400).json({
@@ -19,9 +24,27 @@ async function analyze(req, res) {
             });
         }
 
+        let problem = null;
+
+if (problemId) {
+    try {
+        problem = await Problem.findOne({
+            slug: problemId,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to load problem for analysis:",
+            error
+        );
+    }
+}
+
         const result = analyzeCode(code);
 
-        const features = extractFeatures(code);
+        const features = extractFeatures(
+    code,
+    problem
+);
 
         let mlPrediction = null;
 

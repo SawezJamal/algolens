@@ -5,7 +5,9 @@ const path = require("path");
 const mongoose = require("mongoose");
 const { parse } = require("csv-parse/sync");
 
-require("dotenv").config();
+require("dotenv").config({
+    path: path.join(__dirname, "../.env"),
+});
 
 const Problem = require("../models/Problem");
 
@@ -14,8 +16,18 @@ const CSV_PATH = path.join(
     "../data/coding_questions.csv"
 );
 
-const TARGET_COUNT = 40;
-
+const TARGET_COUNT = 50;
+const REQUIRED_PROBLEMS = [
+    "Contains Duplicate",
+    "Two Sum",
+    "Best Time to Buy and Sell Stock",
+    "Valid Parentheses",
+    "Binary Search",
+    "Climbing Stairs",
+    "Coin Change",
+    "Maximum Subarray",
+    "Merge Sorted Arrays",
+];
 const excludedPhrases = [
     "red-black tree",
     "red black tree",
@@ -62,33 +74,71 @@ const excludedTitles = new Set([
 
 const duplicateGroups = [
     [
-        "linked list palindrome",
-        "palindrome linked list",
+        "palindrome queue stack",
+        "palindrome check using stack and queue",
+        "palindrome check with stack and queue",
     ],
-    [
-        "valid parentheses with wildcard",
-        "valid parentheses with wildcards",
-    ],
+
     [
         "bst contains value",
         "search in a binary search tree",
-    ],
-    [
+        "check if a value exists in a binary tree",
+        "check if element exists",
         "contains value in linked list",
         "linked list contains value",
         "value in linked list",
+        "contains duplicate value in linked list",
     ],
+
     [
-        "connected components",
-        "connected components count",
+        "activity selection",
+        "maximum activities",
     ],
+
     [
-        "minimum bottleneck spanning tree",
-        "minimum bottleneck spanning tree existence",
+        "coin change",
+        "coin change existence",
     ],
+
+    [
+        "same level sum",
+        "same level leaf sum",
+    ],
+
+    [
+        "cycle detection in undirected graph",
+        "cycle detection in a directed graph",
+    ],
+
     [
         "kth smallest element in two merged bsts",
         "kth smallest element in two bsts",
+        "kth smallest element in two merged bst",
+    ],
+
+    [
+        "maximum width of binary tree with null node consideration",
+        "maximum width of binary tree with null nodes",
+        "maximum width of binary tree with same level nodes",
+    ],
+
+    [
+        "palindrome check using stack and queue",
+        "palindrome check with stack and queue",
+        "palindrome queue stack",
+    ],
+
+    [
+        "find target in sorted array",
+        "search in sorted array",
+        "binary search existence",
+        "check if element exists (binary search)",
+    ],
+
+    [
+        "bst contains value",
+        "check if a value exists in a binary tree (preorder)",
+        "check if a value exists in a binary tree (preorder traversal)",
     ],
 ];
 
@@ -418,20 +468,64 @@ function normalizeExamples(value) {
     }));
 }
 
-function normalizeTestCases(value) {
+function normalizeTestCases(value, title = "") {
     const testCases = parseJson(value);
 
     if (!Array.isArray(testCases)) {
         return [];
     }
 
-    return testCases.slice(0, 10).map((testCase) => ({
-        input: JSON.stringify(testCase.input),
-        output: String(
+    return testCases.slice(0, 10).map((testCase) => {
+        let output =
             testCase.expected_output ??
-            testCase.output
-        ),
-    }));
+            testCase.output;
+
+        const normalizedTitle =
+            title.toLowerCase().trim();
+
+        /*
+         * Dataset correction:
+         * Coin Change:
+         * coins = [2], amount = 3 cannot make 3.
+         */
+        if (
+            normalizedTitle === "coin change" &&
+            JSON.stringify(testCase.input) ===
+                JSON.stringify({
+                    coins: [2],
+                    amount: 3,
+                })
+        ) {
+            output = -1;
+        }
+
+        /*
+         * Dataset correction:
+         * Merge Sorted Arrays has incorrect expected
+         * outputs in the source dataset.
+         */
+        if (
+            normalizedTitle === "merge sorted arrays"
+        ) {
+            const nums1 = testCase.input?.nums1 || [];
+            const nums2 = testCase.input?.nums2 || [];
+
+            const m = testCase.input?.m ?? nums1.length;
+            const n = testCase.input?.n ?? nums2.length;
+
+            const merged = [
+                ...nums1.slice(0, m),
+                ...nums2.slice(0, n),
+            ].sort((a, b) => a - b);
+
+            output = JSON.stringify(merged);
+        }
+
+        return {
+            input: JSON.stringify(testCase.input),
+            output: String(output),
+        };
+    });
 }
 
 function normalizeConstraints(value) {
@@ -1001,6 +1095,151 @@ int solve(vector<int>& nums) {
     return 0;
 }`;
 }
+function getExecutionConfig(title) {
+    const normalizedTitle = title
+        .toLowerCase()
+        .trim();
+
+    const configs = {
+        "search insert position": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "searchInsert",
+            returnType: "int",
+            parameters: [
+                {
+                    name: "nums",
+                    type: "vector<int>",
+                },
+                {
+                    name: "target",
+                    type: "int",
+                },
+            ],
+        },
+
+        "find target in sorted array": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "search",
+            returnType: "int",
+            parameters: [
+                {
+                    name: "nums",
+                    type: "vector<int>",
+                },
+                {
+                    name: "target",
+                    type: "int",
+                },
+            ],
+        },
+
+        "check if element exists (binary search)": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "binarySearch",
+            returnType: "bool",
+            parameters: [
+                {
+                    name: "nums",
+                    type: "vector<int>",
+                },
+                {
+                    name: "target",
+                    type: "int",
+                },
+            ],
+        },
+
+        "array nesting": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "arrayNesting",
+            returnType: "int",
+            parameters: [
+                {
+                    name: "nums",
+                    type: "vector<int>",
+                },
+            ],
+        },
+
+        "merge sorted arrays": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "mergeSortedArrays",
+            returnType: "vector<int>",
+            parameters: [
+                {
+                    name: "nums1",
+                    type: "vector<int>",
+                },
+                {
+                    name: "nums2",
+                    type: "vector<int>",
+                },
+            ],
+        },
+
+        "activity selection": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "activitySelection",
+            returnType: "int",
+            parameters: [
+                {
+                    name: "start",
+                    type: "vector<int>",
+                },
+                {
+                    name: "finish",
+                    type: "vector<int>",
+                },
+            ],
+        },
+
+        "lemonade change": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "lemonadeChange",
+            returnType: "bool",
+            parameters: [
+                {
+                    name: "bills",
+                    type: "vector<int>",
+                },
+            ],
+        },
+
+        "coin change": {
+            enabled: true,
+            runnerType: "array",
+            functionName: "coinChange",
+            returnType: "int",
+            parameters: [
+                {
+                    name: "coins",
+                    type: "vector<int>",
+                },
+                {
+                    name: "amount",
+                    type: "int",
+                },
+            ],
+        },
+    };
+
+    return (
+        configs[normalizedTitle] || {
+            enabled: false,
+            runnerType: "",
+            functionName: "",
+            returnType: "",
+            parameters: [],
+        }
+    );
+}
 
 function normalizeTitle(title) {
     return title
@@ -1011,10 +1250,35 @@ function normalizeTitle(title) {
 function isDuplicateTitle(title, selectedTitles) {
     const normalized = normalizeTitle(title);
 
-    return selectedTitles.some(
-        (existing) =>
-            normalizeTitle(existing) === normalized
-    );
+    // Exact title duplicate
+    if (
+        selectedTitles.some(
+            (existing) =>
+                normalizeTitle(existing) === normalized
+        )
+    ) {
+        return true;
+    }
+
+    // Semantic duplicate groups
+    for (const group of duplicateGroups) {
+        const normalizedGroup = group.map(
+            normalizeTitle
+        );
+
+        if (
+            normalizedGroup.includes(normalized) &&
+            selectedTitles.some((existing) =>
+                normalizedGroup.includes(
+                    normalizeTitle(existing)
+                )
+            )
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function isExcluded(problem) {
@@ -1185,9 +1449,10 @@ if (isExcluded(record)) {
 
                 const testCases =
     normalizeTestCases(
-        record.test_cases
+        record.test_cases,
+        record.title
     );
-    
+
             const score = scoreProblem(
                 record,
                 categories
@@ -1220,7 +1485,7 @@ if (isExcluded(record)) {
          */
         const difficultyTargets = {
     Easy: 15,
-    Medium: 20,
+    Medium: 25,
     Hard: 10,
 };
 
@@ -1229,14 +1494,96 @@ if (isExcluded(record)) {
             Medium: 0,
             Hard: 0,
         };
+        /*
+         * Core problems that must be available in AlgoLens.
+         * These are selected first; the normal scoring logic
+         * fills the remaining slots afterward.
+         */
+        const priorityTitles = [
+            "Contains Duplicate",
+            "Two Sum",
+            "Binary Search",
+            "Search Insert Position",
+            "Valid Parentheses",
+            "Merge Sorted Arrays",
+            "Coin Change",
+            "Climbing Stairs",
+            "Maximum Subarray",
+            "Merge Intervals",
+        ];
 
-        const selected = [];
+        const priorityCandidates = [];
+
+        for (const title of priorityTitles) {
+            const candidate = candidates.find(
+                (item) =>
+                    item.record.title
+                        .trim()
+                        .toLowerCase() ===
+                    title.trim().toLowerCase()
+            );
+
+            if (candidate) {
+                priorityCandidates.push(candidate);
+            }
+        }
+
+        console.log(
+            "\nPriority problems found:",
+            priorityCandidates.map(
+                (candidate) =>
+                    candidate.record.title
+            )
+        );
+                const selected = [];
         const selectedTitles = [];
 
         /*
          * Keep categories balanced.
          */
         const categoryCounts = {};
+
+        /*
+         * Add required/core problems first.
+         */
+        for (const candidate of priorityCandidates) {
+            if (selected.length >= TARGET_COUNT) {
+                break;
+            }
+
+            if (
+                isDuplicateTitle(
+                    candidate.record.title,
+                    selectedTitles
+                )
+            ) {
+                continue;
+            }
+
+            selected.push(candidate);
+
+            selectedTitles.push(
+                candidate.record.title
+            );
+
+            difficultyCounts[
+                candidate.difficulty
+            ]++;
+
+            for (const category of candidate.categories) {
+                categoryCounts[category] =
+                    (categoryCounts[category] || 0) + 1;
+            }
+        }
+
+        /*
+         * Fill the remaining slots using the
+         * existing score-based selection logic.
+         */
+
+        /*
+         * Keep categories balanced.
+         */
 
         for (const candidate of candidates) {
             if (
@@ -1268,15 +1615,14 @@ if (isExcluded(record)) {
              * Don't let one category dominate.
              */
             const dominantCategory =
-                candidate.categories.some(
-                    (category) =>
-                        (categoryCounts[category] ||
-                            0) >= 8
-                );
+    candidate.categories.some(
+        (category) =>
+            (categoryCounts[category] || 0) >= 12
+    );
 
-            if (dominantCategory) {
-                continue;
-            }
+if (dominantCategory) {
+    continue;
+}
 
             selected.push(candidate);
 
@@ -1370,11 +1716,15 @@ if (isExcluded(record)) {
                         constraints,
 
                         starterCode: getStarterCode(
-                            record.title,
-                            categories
-                        ),
+    record.title,
+    categories
+),
 
-                        tags: categories.map(
+execution: getExecutionConfig(
+    record.title
+),
+
+tags: categories.map(
                             (category) =>
                                 category
                                     .toLowerCase()
@@ -1402,18 +1752,32 @@ if (isExcluded(record)) {
             "\nMongoDB connected"
         );
 
-        const result =
-            await Problem.bulkWrite(
-                operations
-            );
+        // Replace the existing problem collection with the
+// currently selected dataset problems.
+const deletedCount = await Problem.countDocuments();
 
-        console.log(
-            `Inserted: ${result.upsertedCount}`
-        );
+await Problem.deleteMany({});
 
-        console.log(
-            `Updated: ${result.modifiedCount}`
-        );
+console.log(
+    `Removed ${deletedCount} existing problems`
+);
+
+const result =
+    await Problem.bulkWrite(
+        operations
+    );
+
+console.log(
+    `Inserted: ${result.upsertedCount}`
+);
+
+console.log(
+    `Updated: ${result.modifiedCount}`
+);
+
+console.log(
+    `Total problems imported: ${selected.length}`
+);
 
         console.log(
             "\nProblem import completed successfully."

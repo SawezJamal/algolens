@@ -79,16 +79,36 @@ Formatting rules:
 - Keep the response concise and suitable for a coding platform UI.
 `;
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash-lite",
-        contents: prompt,
-        config: {
-            temperature: 0.2,
-            maxOutputTokens: 400,
-        },
-    });
+    const maxRetries = 2;
 
-    return response.text;
+for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3.5-flash-lite",
+            contents: prompt,
+            config: {
+                temperature: 0.2,
+                maxOutputTokens: 400,
+            },
+        });
+
+        return response.text;
+    } catch (error) {
+        const status = error?.status || error?.code;
+
+        if (status !== 503 || attempt === maxRetries) {
+            throw error;
+        }
+
+        console.log(
+            `Gemini temporarily unavailable. Retrying (${attempt + 1}/${maxRetries})...`
+        );
+
+        await new Promise((resolve) =>
+            setTimeout(resolve, 1500 * (attempt + 1))
+        );
+    }
+}
 }
 
 module.exports = {

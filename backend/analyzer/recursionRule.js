@@ -18,6 +18,7 @@ function detectRecursion(code) {
     ];
 
     for (const match of functions) {
+
         const functionName =
             match[1];
 
@@ -28,17 +29,59 @@ function detectRecursion(code) {
             functionStart +
             match[0].length;
 
+        // =====================================================
+        // Extract ONLY this function's body
+        // =====================================================
+
+        let braceDepth = 1;
+        let bodyEnd = bodyStart;
+
+        for (
+            let i = bodyStart;
+            i < code.length;
+            i++
+        ) {
+
+            const char = code[i];
+
+            if (char === "{") {
+                braceDepth++;
+            }
+
+            if (char === "}") {
+                braceDepth--;
+
+                if (braceDepth === 0) {
+                    bodyEnd = i;
+                    break;
+                }
+            }
+        }
+
+        // Could not determine the function body
+        if (bodyEnd <= bodyStart) {
+            continue;
+        }
+
         const functionBody =
-            code.slice(bodyStart);
+            code.slice(
+                bodyStart,
+                bodyEnd
+            );
 
         // =====================================================
         // Check whether function calls itself
         // =====================================================
 
-        const recursiveCall =
+        const recursiveCallRegex =
             new RegExp(
                 `\\b${functionName}\\s*\\(`
-            ).test(functionBody);
+            );
+
+        const recursiveCall =
+            recursiveCallRegex.test(
+                functionBody
+            );
 
         if (!recursiveCall) {
             continue;
@@ -73,56 +116,70 @@ function detectRecursion(code) {
             code.split("\n");
 
         let startLine = 1;
-        let endLine =
-            lines.length;
+        let endLine = lines.length;
 
-        let braceDepth = 0;
+        let braceDepthForLines = 0;
         let started = false;
+
+        // -----------------------------------------------------
+        // Find function starting line
+        // -----------------------------------------------------
 
         for (
             let i = 0;
             i < lines.length;
             i++
         ) {
+
             if (
-                i + 1 <
-                lines.length &&
                 lines[i].includes(
                     functionName
                 ) &&
                 /\(/.test(lines[i])
             ) {
+
                 startLine = i + 1;
                 break;
             }
         }
+
+        // -----------------------------------------------------
+        // Find function ending line
+        // -----------------------------------------------------
 
         for (
             let i = startLine - 1;
             i < lines.length;
             i++
         ) {
+
             for (
                 const char of lines[i]
             ) {
+
                 if (char === "{") {
-                    braceDepth++;
+                    braceDepthForLines++;
                     started = true;
                 }
 
                 if (char === "}") {
-                    braceDepth--;
+                    braceDepthForLines--;
                 }
             }
 
             if (
                 started &&
-                braceDepth === 0
+                braceDepthForLines === 0
             ) {
+
                 endLine = i + 1;
                 break;
             }
         }
+
+        // =====================================================
+        // Return recursion finding
+        // =====================================================
 
         return {
             functionName,
